@@ -1,0 +1,118 @@
+services:
+  # ─── MySQL Databases ──────────────────────────────────────────────────────
+  mysql_usuarios:
+    image: mysql:8.0
+    container_name: safda_mysql_usuarios
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: safda_usuarios
+    ports:
+      - '3307:3306'
+    volumes:
+      - mysql_usuarios_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-pchangeme']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql_documentos:
+    image: mysql:8.0
+    container_name: safda_mysql_documentos
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: safda_documentos
+    ports:
+      - '3308:3306'
+    volumes:
+      - mysql_documentos_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-pchangeme']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql_plataforma:
+    image: mysql:8.0
+    container_name: safda_mysql_plataforma
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: safda_plataforma
+    ports:
+      - '3309:3306'
+    volumes:
+      - mysql_plataforma_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-pchangeme']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Microservices ────────────────────────────────────────────────────────
+  svc_usuarios:
+    build:
+      context: ./services/usuarios
+      dockerfile: Dockerfile
+    container_name: safda_svc_usuarios
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    env_file:
+      - ./services/usuarios/.env
+    environment:
+      DB_HOST: mysql_usuarios
+      DB_PORT: 3306
+    depends_on:
+      mysql_usuarios:
+        condition: service_healthy
+
+  svc_documentos:
+    build:
+      context: ./services/documentos
+      dockerfile: Dockerfile
+    container_name: safda_svc_documentos
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+    env_file:
+      - ./services/documentos/.env
+    environment:
+      DB_HOST: mysql_documentos
+      DB_PORT: 3306
+    volumes:
+      - documentos_storage:/app/storage/pdfs
+    depends_on:
+      mysql_documentos:
+        condition: service_healthy
+
+  svc_plataforma:
+    build:
+      context: ./services/plataforma
+      dockerfile: Dockerfile
+    container_name: safda_svc_plataforma
+    restart: unless-stopped
+    ports:
+      - '3003:3003'
+    env_file:
+      - ./services/plataforma/.env
+    environment:
+      DB_HOST: mysql_plataforma
+      DB_PORT: 3306
+      USUARIOS_SERVICE_URL: http://svc_usuarios:3001
+      DOCUMENTOS_SERVICE_URL: http://svc_documentos:3002
+    depends_on:
+      mysql_plataforma:
+        condition: service_healthy
+      svc_usuarios:
+        condition: service_started
+      svc_documentos:
+        condition: service_started
+
+volumes:
+  mysql_usuarios_data:
+  mysql_documentos_data:
+  mysql_plataforma_data:
+  documentos_storage:
