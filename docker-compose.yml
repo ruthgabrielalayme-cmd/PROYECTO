@@ -5,7 +5,7 @@ services:
     container_name: safda_mysql_usuarios
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_ROOT_PASSWORD: 9151038Lp*
       MYSQL_DATABASE: safda_usuarios
     ports:
       - '3307:3306'
@@ -22,7 +22,7 @@ services:
     container_name: safda_mysql_documentos
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_ROOT_PASSWORD: 9151038Lp*
       MYSQL_DATABASE: safda_documentos
     ports:
       - '3308:3306'
@@ -39,7 +39,7 @@ services:
     container_name: safda_mysql_plataforma
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_ROOT_PASSWORD: 9151038Lp*
       MYSQL_DATABASE: safda_plataforma
     ports:
       - '3309:3306'
