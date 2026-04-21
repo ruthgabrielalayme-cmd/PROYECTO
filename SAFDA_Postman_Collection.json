@@ -1,0 +1,976 @@
+{
+  "info": {
+    "_postman_id": "60db5398-fbe9-4f31-aa43-962b71466f64",
+    "name": "SAFDA - Sistema de Administración y Flujo Documental",
+    "description": "Colección completa de endpoints para probar los 3 microservicios de SAFDA: Usuarios, Documentos y Plataforma.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_usuarios",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "base_documentos",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "base_plataforma",
+      "value": "http://localhost:3003",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "Se llena automáticamente al hacer login"
+    },
+    {
+      "key": "usuario_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tipo_documento_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documento_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hoja_ruta_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "derivacion_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 MS Usuarios — :3001",
+      "item": [
+        {
+          "name": "Login con Google",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('jwt_token', res.access_token);",
+                  "    pm.collectionVariables.set('usuario_id', res.perfil.id);",
+                  "    console.log('✅ JWT guardado:', res.access_token);",
+                  "}",
+                  "pm.test('Login exitoso', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"GOOGLE\",\n  \"token\": \"PEGA_AQUI_TU_ID_TOKEN_DE_GOOGLE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_usuarios}}/auth/login",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login con Ciudadanía Digital",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('jwt_token', res.access_token);",
+                  "    pm.collectionVariables.set('usuario_id', res.perfil.id);",
+                  "    console.log('✅ JWT guardado:', res.access_token);",
+                  "}",
+                  "pm.test('Login exitoso', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"CIUDADANIA_DIGITAL\",\n  \"token\": \"PEGA_AQUI_TU_ID_TOKEN_DE_CIUDADANIA_DIGITAL\"\n}"
+            },
+            "url": {
+              "raw": "{{base_usuarios}}/auth/login",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar todos los usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_usuarios}}/usuarios",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener usuario por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_usuarios}}/usuarios/{{usuario_id}}",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{usuario_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar usuario (asignar área y rol)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area\": \"DAF\",\n  \"rol\": \"FUNCIONARIO\",\n  \"estado\": \"ACTIVO\"\n}"
+            },
+            "url": {
+              "raw": "{{base_usuarios}}/usuarios/{{usuario_id}}",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{usuario_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 MS Documentos — :3002",
+      "item": [
+        {
+          "name": "Crear tipo de documento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.collectionVariables.set('tipo_documento_id', res.id);",
+                  "    console.log('✅ tipo_documento_id guardado:', res.id);",
+                  "}",
+                  "pm.test('Tipo creado', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"MEMORANDUM\",\n  \"plantilla_path\": \"./plantillas/memorandum.docx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_documentos}}/tipos-documento",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "tipos-documento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar tipos de documento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_documentos}}/tipos-documento",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "tipos-documento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Descargar plantilla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_documentos}}/documentos/plantilla/{{tipo_documento_id}}",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos",
+                "plantilla",
+                "{{tipo_documento_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear documento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.collectionVariables.set('documento_id', res.id);",
+                  "    console.log('✅ documento_id guardado:', res.id);",
+                  "}",
+                  "pm.test('Documento creado', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoja_ruta_id\": \"{{hoja_ruta_id}}\",\n  \"tipo_documento_id\": \"{{tipo_documento_id}}\",\n  \"creado_por\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_documentos}}/documentos",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener documento por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_documentos}}/documentos/{{documento_id}}",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos",
+                "{{documento_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Subir PDF (con site + QR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": "",
+                  "description": "Selecciona el archivo PDF del documento"
+                },
+                {
+                  "key": "area",
+                  "value": "DAF",
+                  "type": "text",
+                  "description": "Sigla del área para generar el site (ej: DAF)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_documentos}}/documentos/{{documento_id}}/subir-pdf",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos",
+                "{{documento_id}}",
+                "subir-pdf"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar todos los documentos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_documentos}}/documentos",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 MS Plataforma — :3003",
+      "item": [
+        {
+          "name": "Crear Hoja de Ruta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.collectionVariables.set('hoja_ruta_id', res.id);",
+                  "    console.log('✅ hoja_ruta_id guardado:', res.id);",
+                  "}",
+                  "pm.test('Hoja de ruta creada', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_origen\": \"DAF\",\n  \"creado_por\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/hojas-ruta",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "hojas-ruta"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Hojas de Ruta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/hojas-ruta",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "hojas-ruta"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener Hoja de Ruta por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/hojas-ruta/{{hoja_ruta_id}}",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "hojas-ruta",
+                "{{hoja_ruta_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Derivar documento (interna — mismo área)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.collectionVariables.set('derivacion_id', res.id);",
+                  "    console.log('✅ derivacion_id guardado:', res.id);",
+                  "}",
+                  "pm.test('Derivación creada', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoja_ruta_id\": \"{{hoja_ruta_id}}\",\n  \"documento_id\": \"{{documento_id}}\",\n  \"remitente_id\": \"{{usuario_id}}\",\n  \"destinatario_id\": \"REEMPLAZA_CON_UUID_DESTINATARIO\",\n  \"es_externa\": false,\n  \"nota\": \"Derivaci\\u00f3n interna de prueba\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/derivaciones",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "derivaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Derivar documento (externa — requiere aprobación)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoja_ruta_id\": \"{{hoja_ruta_id}}\",\n  \"documento_id\": \"{{documento_id}}\",\n  \"remitente_id\": \"{{usuario_id}}\",\n  \"destinatario_id\": \"REEMPLAZA_CON_UUID_DESTINATARIO_OTRA_AREA\",\n  \"es_externa\": true,\n  \"nota\": \"Derivaci\\u00f3n externa \\u2014 pasa por encargado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/derivaciones",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "derivaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aprobar derivación (encargado)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/derivaciones/{{derivacion_id}}/aprobar",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "derivaciones",
+                "{{derivacion_id}}",
+                "aprobar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rechazar derivación (encargado)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"El documento requiere correcciones antes de ser enviado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/derivaciones/{{derivacion_id}}/rechazar",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "derivaciones",
+                "{{derivacion_id}}",
+                "rechazar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bandeja ENTRANTE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/bandejas/{{usuario_id}}?tipo=ENTRANTE",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "bandejas",
+                "{{usuario_id}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "ENTRANTE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bandeja SALIENTE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/bandejas/{{usuario_id}}?tipo=SALIENTE",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "bandejas",
+                "{{usuario_id}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "SALIENTE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bandeja PENDIENTE APROBACIÓN (encargado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/bandejas/{{usuario_id}}?tipo=PENDIENTE_APROBACION",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "bandejas",
+                "{{usuario_id}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "PENDIENTE_APROBACION"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚀 Flujo Completo (orden sugerido)",
+      "description": "Ejecuta estos requests en orden para probar el flujo completo de SAFDA",
+      "item": [
+        {
+          "name": "PASO 1 — Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"GOOGLE\",\n  \"token\": \"PEGA_AQUI_TU_ID_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_usuarios}}/auth/login",
+              "host": [
+                "{{base_usuarios}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 2 — Crear tipo de documento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"MEMORANDUM\",\n  \"plantilla_path\": \"./plantillas/memorandum.docx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_documentos}}/tipos-documento",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "tipos-documento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 3 — Crear Hoja de Ruta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_origen\": \"DAF\",\n  \"creado_por\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/hojas-ruta",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "hojas-ruta"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 4 — Crear Documento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoja_ruta_id\": \"{{hoja_ruta_id}}\",\n  \"tipo_documento_id\": \"{{tipo_documento_id}}\",\n  \"creado_por\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_documentos}}/documentos",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 5 — Subir PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": "",
+                  "description": "Selecciona tu PDF"
+                },
+                {
+                  "key": "area",
+                  "value": "DAF",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_documentos}}/documentos/{{documento_id}}/subir-pdf",
+              "host": [
+                "{{base_documentos}}"
+              ],
+              "path": [
+                "documentos",
+                "{{documento_id}}",
+                "subir-pdf"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 6 — Derivar documento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoja_ruta_id\": \"{{hoja_ruta_id}}\",\n  \"documento_id\": \"{{documento_id}}\",\n  \"remitente_id\": \"{{usuario_id}}\",\n  \"destinatario_id\": \"REEMPLAZA_CON_UUID_DESTINATARIO\",\n  \"es_externa\": false,\n  \"nota\": \"Env\\u00edo para revisi\\u00f3n\"\n}"
+            },
+            "url": {
+              "raw": "{{base_plataforma}}/derivaciones",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "derivaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PASO 7 — Ver bandeja entrante",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_plataforma}}/bandejas/{{usuario_id}}?tipo=ENTRANTE",
+              "host": [
+                "{{base_plataforma}}"
+              ],
+              "path": [
+                "bandejas",
+                "{{usuario_id}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "ENTRANTE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
