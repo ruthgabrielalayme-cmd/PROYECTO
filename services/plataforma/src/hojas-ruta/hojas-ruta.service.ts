@@ -13,6 +13,10 @@ export class HojasRutaService {
     private readonly repo: Repository<HojaRuta>,
   ) {}
 
+  async findAll(): Promise<HojaRuta[]> {
+    return this.repo.find({ relations: ['derivaciones'] });
+  }
+
   async create(dto: CreateHojaRutaDto): Promise<HojaRuta> {
     const anio = new Date().getFullYear();
     const codigo = await this.generarCodigo(dto.area_origen, anio);
