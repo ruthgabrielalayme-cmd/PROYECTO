@@ -1,5 +1,6 @@
-import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseUUIDPipe } from '@nestjs/common';
 import { TiposDocumentoService } from './tipos-documento.service';
+import { CreateTipoDocumentoDto } from './tipo-documento.dto';
 
 @Controller('tipos-documento')
 export class TiposDocumentoController {
@@ -13,5 +14,10 @@ export class TiposDocumentoController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreateTipoDocumentoDto) {
+    return this.service.create(dto);
   }
 }
