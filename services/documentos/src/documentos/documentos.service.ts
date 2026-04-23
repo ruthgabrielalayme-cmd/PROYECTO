@@ -48,7 +48,11 @@ export class DocumentosService {
     return saved;
   }
 
-  // ─── Obtener un documento ────────────────────────────────────────────────
+  // ─── Obtener documentos ────────────────────────────────────────────────
+
+  async findAll(): Promise<Documento[]> {
+    return this.repo.find({ relations: ['tipo_documento'] });
+  }
 
   async findOne(id: string): Promise<Documento> {
     const doc = await this.repo.findOne({ where: { id } });

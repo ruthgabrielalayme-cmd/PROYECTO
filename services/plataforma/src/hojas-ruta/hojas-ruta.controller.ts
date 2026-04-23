@@ -16,6 +16,11 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 export class HojasRutaController {
   constructor(private readonly service: HojasRutaService) {}
 
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
   @Post()
   create(@Body() dto: CreateHojaRutaDto) {
     return this.service.create(dto);

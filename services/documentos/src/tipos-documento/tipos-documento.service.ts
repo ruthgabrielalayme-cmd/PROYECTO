@@ -19,4 +19,9 @@ export class TiposDocumentoService {
     if (!tipo) throw new NotFoundException(`TipoDocumento ${id} no encontrado`);
     return tipo;
   }
+
+  async create(data: { nombre: string; plantilla_path?: string }): Promise<TipoDocumento> {
+    const nuevo = this.repo.create(data);
+    return this.repo.save(nuevo);
+  }
 }
