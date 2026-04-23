@@ -96,3 +96,13 @@ cd services/plataforma && npm install && npm run start:dev
 ## Supuestos documentados
 
 Ver sección **G** al final del documento de arquitectura o el archivo `SUPUESTOS.md`.
+
+
+## rutas
+http://localhost:3001   → MS Usuarios
+http://localhost:3002   → MS Documentos
+http://localhost:3003   → MS Plataforma
+
+GET    http://localhost:3001/usuarios
+GET    http://localhost:3001/usuarios/:id
+PATCH  http://localhost:3001/usuarios/:id
