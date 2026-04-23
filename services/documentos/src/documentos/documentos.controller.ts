@@ -50,6 +50,15 @@ export class DocumentosController {
   }
 
   /**
+   * GET /documentos
+   * Retorna todos los documentos.
+   */
+  @Get()
+  findAll() {
+    return this.documentosService.findAll();
+  }
+
+  /**
    * POST /documentos
    * Crea un nuevo documento en estado BORRADOR.
    */
