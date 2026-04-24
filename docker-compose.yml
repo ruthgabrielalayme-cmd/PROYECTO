@@ -84,6 +84,7 @@ services:
       DB_PORT: 3306
     volumes:
       - documentos_storage:/app/storage/pdfs
+      - ./services/documentos/plantillas:/app/plantillas
     depends_on:
       mysql_documentos:
         condition: service_healthy
