@@ -9,6 +9,16 @@ async function bootstrap(): Promise<void> {
   const port = config.get<number>('PORT') ?? 3002;
   const logger = new Logger('Bootstrap');
 
+  app.enableCors({
+    origin: [
+      'http://localhost:4200',
+      'http://localhost:4201',
+    ],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
