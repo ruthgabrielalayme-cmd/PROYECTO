@@ -24,6 +24,7 @@ describe('AuthService', () => {
           provide: UsuariosService,
           useValue: {
             findByProviderSub: jest.fn(),
+            findByCorreo: jest.fn(),
             save: jest.fn(),
           },
         },
@@ -118,8 +119,9 @@ describe('AuthService', () => {
       }),
     });
 
-    // No existe usuario previo
+    // No existe usuario previo por sub ni correo
     usuariosService.findByProviderSub.mockResolvedValueOnce(null);
+    usuariosService.findByCorreo.mockResolvedValueOnce(null);
 
     // Mock save retorna el usuario creado
     const mockUsuario = {

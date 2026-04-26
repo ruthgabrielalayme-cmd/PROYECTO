@@ -15,7 +15,6 @@ import {
 } from '../usuarios/usuario.entity';
 import { LoginFederadoDto, JwtPayload } from './auth.dto';
 
-/** Claims mínimos que se extraen del userinfo de Ciudadanía Digital */
 interface CiudadaniaDigitalClaims {
   sub: string;
   nombre?: string;
@@ -26,7 +25,6 @@ interface CiudadaniaDigitalClaims {
   celular?: string;
 }
 
-/** Claims del id_token / userinfo de Google */
 interface GoogleClaims {
   sub: string;
   email?: string;
@@ -66,9 +64,7 @@ export class AuthService {
     const usuario = await this.upsertUsuario(dto.provider, claims);
     const access_token = this.emitirJwtInterno(usuario);
 
-    this.logger.log(
-      `Login exitoso: ${usuario.id} via ${dto.provider}`,
-    );
+    this.logger.log(`Login exitoso: ${usuario.id} via ${dto.provider}`);
 
     return {
       access_token,
@@ -94,7 +90,6 @@ export class AuthService {
     }
 
     try {
-      // Obtener OIDC discovery para el userinfo_endpoint
       const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
       const discoveryRes = await fetch(discoveryUrl);
       if (!discoveryRes.ok) {
@@ -102,7 +97,6 @@ export class AuthService {
       }
       const discovery = await discoveryRes.json() as { userinfo_endpoint: string };
 
-      // Llamar al userinfo endpoint con el access_token del frontend
       const userInfoRes = await fetch(discovery.userinfo_endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -129,7 +123,6 @@ export class AuthService {
 
   private async validarTokenGoogle(token: string): Promise<GoogleClaims> {
     try {
-      // Google expone un endpoint de tokeninfo / userinfo
       const res = await fetch(
         `https://www.googleapis.com/oauth2/v3/userinfo`,
         { headers: { Authorization: `Bearer ${token}` } },
@@ -160,22 +153,44 @@ export class AuthService {
     claims: CiudadaniaDigitalClaims | GoogleClaims,
   ): Promise<Usuario> {
     const sub = claims.sub;
+
+    // 1️⃣ Buscar por provider_sub (usuario que ya hizo login antes)
     let usuario = await this.usuariosService.findByProviderSub(provider, sub);
 
+    // 2️⃣ Si no existe por sub, buscar por correo (usuario pre-registrado manualmente)
     if (!usuario) {
-      // Nuevo usuario → estado PENDIENTE_ASIGNACION
+      const correo =
+        (claims as GoogleClaims).email ??
+        (claims as CiudadaniaDigitalClaims).email;
+
+      if (correo) {
+        usuario = await this.usuariosService.findByCorreo(correo);
+
+        if (usuario) {
+          // Vincular el provider_sub real al usuario existente
+          usuario.provider_sub = sub;
+          usuario.provider = provider;
+          usuario = await this.usuariosService.save(usuario);
+          this.logger.log(
+            `Usuario vinculado por correo: ${usuario.id} (${provider})`,
+          );
+        }
+      }
+    }
+
+    // 3️⃣ Si no existe por ninguna vía → crear nuevo con PENDIENTE_ASIGNACION
+    if (!usuario) {
       const nuevo: Partial<Usuario> = {
         provider,
         provider_sub: sub,
         estado: EstadoUsuario.PENDIENTE_ASIGNACION,
         rol: Rol.FUNCIONARIO,
       };
-
       this.poblarCamposDesdeProvider(nuevo, provider, claims);
       usuario = await this.usuariosService.save(nuevo);
       this.logger.log(`Usuario creado: ${usuario.id} (${provider})`);
     } else {
-      // Usuario existente → actualizar solo metadata
+      // Actualizar metadata del usuario existente
       this.poblarCamposDesdeProvider(usuario, provider, claims);
       usuario = await this.usuariosService.save(usuario);
       this.logger.log(`Usuario actualizado: ${usuario.id} (${provider})`);
