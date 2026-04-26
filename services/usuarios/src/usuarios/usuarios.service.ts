@@ -46,6 +46,12 @@ export class UsuariosService {
     });
   }
 
+  // ── NUEVO ──────────────────────────────────────────────────────────────────
+  async findByCorreo(correo: string): Promise<Usuario | null> {
+    return this.usuariosRepo.findOne({ where: { correo } });
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   async save(usuario: Partial<Usuario>): Promise<Usuario> {
     return this.usuariosRepo.save(usuario);
   }

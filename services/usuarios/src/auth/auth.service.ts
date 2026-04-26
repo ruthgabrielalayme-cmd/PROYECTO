@@ -15,7 +15,6 @@ import {
 } from '../usuarios/usuario.entity';
 import { LoginFederadoDto, JwtPayload } from './auth.dto';
 
-/** Claims mínimos que se extraen del userinfo de Ciudadanía Digital */
 interface CiudadaniaDigitalClaims {
   sub: string;
   nombre?: string;
@@ -26,7 +25,6 @@ interface CiudadaniaDigitalClaims {
   celular?: string;
 }
 
-/** Claims del id_token / userinfo de Google */
 interface GoogleClaims {
   sub: string;
   email?: string;
@@ -66,9 +64,7 @@ export class AuthService {
     const usuario = await this.upsertUsuario(dto.provider, claims);
     const access_token = this.emitirJwtInterno(usuario);
 
-    this.logger.log(
-      `Login exitoso: ${usuario.id} via ${dto.provider}`,
-    );
+    this.logger.log(`Login exitoso: ${usuario.id} via ${dto.provider}`);
 
     return {
       access_token,
@@ -94,7 +90,6 @@ export class AuthService {
     }
 
     try {
-      // Obtener OIDC discovery para el userinfo_endpoint
       const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
       const discoveryRes = await fetch(discoveryUrl);
       if (!discoveryRes.ok) {
@@ -102,7 +97,6 @@ export class AuthService {
       }
       const discovery = await discoveryRes.json() as { userinfo_endpoint: string };
 
-      // Llamar al userinfo endpoint con el access_token del frontend
       const userInfoRes = await fetch(discovery.userinfo_endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -128,30 +122,45 @@ export class AuthService {
   // ─── Validación Google ─────────────────────────────────────────────────────
 
   private async validarTokenGoogle(token: string): Promise<GoogleClaims> {
-    try {
-      // Google expone un endpoint de tokeninfo / userinfo
-      const res = await fetch(
-        `https://www.googleapis.com/oauth2/v3/userinfo`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+  try {
+    // @react-oauth/google retorna un ID token (JWT), no un access token
+    // Google tiene un endpoint específico para validar ID tokens
+    const res = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${token}`,
+    );
 
-      if (!res.ok) {
-        throw new UnauthorizedException('Token Google inválido o expirado');
-      }
-
-      const claims = await res.json() as GoogleClaims;
-
-      if (!claims.sub) {
-        throw new UnauthorizedException('Token Google no contiene sub');
-      }
-
-      return claims;
-    } catch (err) {
-      if (err instanceof UnauthorizedException) throw err;
-      this.logger.error('Error validando token Google', err);
-      throw new UnauthorizedException('No se pudo validar el token de Google');
+    if (!res.ok) {
+      throw new UnauthorizedException('Token Google inválido o expirado');
     }
+
+    const claims = await res.json() as GoogleClaims & {
+      aud?: string;
+      email_verified?: string;
+    };
+
+    if (!claims.sub) {
+      throw new UnauthorizedException('Token Google no contiene sub');
+    }
+
+    // Verificar que el token es para nuestra app
+    const expectedClientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (expectedClientId && claims.aud !== expectedClientId) {
+      throw new UnauthorizedException('Token Google no corresponde a esta aplicación');
+    }
+
+    return {
+      sub: claims.sub,
+      email: claims.email,
+      email_verified: claims.email_verified === 'true',
+      name: claims.name,
+      picture: claims.picture,
+    };
+  } catch (err) {
+    if (err instanceof UnauthorizedException) throw err;
+    this.logger.error('Error validando token Google', err);
+    throw new UnauthorizedException('No se pudo validar el token de Google');
   }
+}
 
   // ─── Upsert de usuario ─────────────────────────────────────────────────────
 
@@ -160,22 +169,44 @@ export class AuthService {
     claims: CiudadaniaDigitalClaims | GoogleClaims,
   ): Promise<Usuario> {
     const sub = claims.sub;
+
+    // 1️⃣ Buscar por provider_sub (usuario que ya hizo login antes)
     let usuario = await this.usuariosService.findByProviderSub(provider, sub);
 
+    // 2️⃣ Si no existe por sub, buscar por correo (usuario pre-registrado manualmente)
     if (!usuario) {
-      // Nuevo usuario → estado PENDIENTE_ASIGNACION
+      const correo =
+        (claims as GoogleClaims).email ??
+        (claims as CiudadaniaDigitalClaims).email;
+
+      if (correo) {
+        usuario = await this.usuariosService.findByCorreo(correo);
+
+        if (usuario) {
+          // Vincular el provider_sub real al usuario existente
+          usuario.provider_sub = sub;
+          usuario.provider = provider;
+          usuario = await this.usuariosService.save(usuario);
+          this.logger.log(
+            `Usuario vinculado por correo: ${usuario.id} (${provider})`,
+          );
+        }
+      }
+    }
+
+    // 3️⃣ Si no existe por ninguna vía → crear nuevo con PENDIENTE_ASIGNACION
+    if (!usuario) {
       const nuevo: Partial<Usuario> = {
         provider,
         provider_sub: sub,
         estado: EstadoUsuario.PENDIENTE_ASIGNACION,
         rol: Rol.FUNCIONARIO,
       };
-
       this.poblarCamposDesdeProvider(nuevo, provider, claims);
       usuario = await this.usuariosService.save(nuevo);
       this.logger.log(`Usuario creado: ${usuario.id} (${provider})`);
     } else {
-      // Usuario existente → actualizar solo metadata
+      // Actualizar metadata del usuario existente
       this.poblarCamposDesdeProvider(usuario, provider, claims);
       usuario = await this.usuariosService.save(usuario);
       this.logger.log(`Usuario actualizado: ${usuario.id} (${provider})`);

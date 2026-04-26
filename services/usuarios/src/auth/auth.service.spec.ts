@@ -24,6 +24,7 @@ describe('AuthService', () => {
           provide: UsuariosService,
           useValue: {
             findByProviderSub: jest.fn(),
+            findByCorreo: jest.fn(),   // ← NUEVO
             save: jest.fn(),
           },
         },
@@ -62,7 +63,6 @@ describe('AuthService', () => {
   // ─── Test 1: Token CD inválido lanza UnauthorizedException ──────────────
 
   it('debería lanzar UnauthorizedException cuando el token de CD es inválido', async () => {
-    // Simula discovery OK
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -70,7 +70,6 @@ describe('AuthService', () => {
           userinfo_endpoint: 'https://ciudadania.test/userinfo',
         }),
       })
-      // Simula userinfo con error 401
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -107,7 +106,6 @@ describe('AuthService', () => {
   // ─── Test 3: Usuario nuevo se crea con PENDIENTE_ASIGNACION ─────────────
 
   it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION si sub+provider no existen', async () => {
-    // Mock Google userinfo retorna claims válidos
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -118,10 +116,10 @@ describe('AuthService', () => {
       }),
     });
 
-    // No existe usuario previo
+    // No existe por provider_sub ni por correo
     usuariosService.findByProviderSub.mockResolvedValueOnce(null);
+    usuariosService.findByCorreo.mockResolvedValueOnce(null);  // ← NUEVO
 
-    // Mock save retorna el usuario creado
     const mockUsuario = {
       id: 'uuid-generado',
       provider: Provider.GOOGLE,
@@ -151,6 +149,7 @@ describe('AuthService', () => {
       Provider.GOOGLE,
       'google_sub_nuevo_123',
     );
+    expect(usuariosService.findByCorreo).toHaveBeenCalledWith('nuevo@example.com');
     expect(usuariosService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         estado: EstadoUsuario.PENDIENTE_ASIGNACION,
@@ -194,7 +193,10 @@ describe('AuthService', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.findByProviderSub.mockResolvedValueOnce(mockExistente as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    usuariosService.save.mockResolvedValueOnce({ ...mockExistente, correo: 'existente_nuevo_email@example.com' } as any);
+    usuariosService.save.mockResolvedValueOnce({
+      ...mockExistente,
+      correo: 'existente_nuevo_email@example.com',
+    } as any);
 
     const dto: LoginFederadoDto = {
       token: 'valid_google_token_2',
@@ -203,7 +205,6 @@ describe('AuthService', () => {
 
     await authService.loginFederado(dto);
 
-    // Verifica que save recibe el usuario con area y rol intactos
     expect(usuariosService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         area: 'DAF',
@@ -211,6 +212,71 @@ describe('AuthService', () => {
         estado: EstadoUsuario.ACTIVO,
       }),
     );
+    // findByCorreo NO debe llamarse porque ya encontró por provider_sub
+    expect(usuariosService.findByCorreo).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalled();
+  });
+
+  // ─── Test 5: Usuario pre-registrado se vincula por correo ───────────────
+
+  it('debería vincular provider_sub a usuario pre-registrado encontrado por correo', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sub: 'google_sub_real_789',
+        email: 'ruthgabrielalayme@gmail.com',
+        name: 'Ruth Gabriela Layme',
+        picture: 'https://photo.url',
+      }),
+    });
+
+    // No existe por provider_sub
+    usuariosService.findByProviderSub.mockResolvedValueOnce(null);
+
+    // Pero sí existe por correo (pre-registrado manualmente)
+    const mockPreRegistrado = {
+      id: 'uuid-preregistrado',
+      provider: Provider.GOOGLE,
+      provider_sub: null,
+      estado: EstadoUsuario.ACTIVO,
+      rol: Rol.ADMIN,
+      area: null,
+      correo: 'ruthgabrielalayme@gmail.com',
+      nombre_completo: 'Ruth Gabriela Layme',
+      foto_url: null,
+      documento_identidad: null,
+      celular: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    usuariosService.findByCorreo.mockResolvedValueOnce(mockPreRegistrado as any);
+
+    const mockVinculado = {
+      ...mockPreRegistrado,
+      provider_sub: 'google_sub_real_789',
+    };
+    // save se llama dos veces: vincular sub + actualizar metadata
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    usuariosService.save.mockResolvedValue(mockVinculado as any);
+
+    const dto: LoginFederadoDto = {
+      token: 'valid_google_token_3',
+      provider: Provider.GOOGLE,
+    };
+
+    const result = await authService.loginFederado(dto);
+
+    expect(usuariosService.findByCorreo).toHaveBeenCalledWith(
+      'ruthgabrielalayme@gmail.com',
+    );
+    expect(usuariosService.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_sub: 'google_sub_real_789',
+      }),
+    );
+    expect(result.perfil.rol).toBe(Rol.ADMIN);
+    expect(result.perfil.estado).toBe(EstadoUsuario.ACTIVO);
+    expect(result.access_token).toBe('mocked.jwt.token');
   });
 });
