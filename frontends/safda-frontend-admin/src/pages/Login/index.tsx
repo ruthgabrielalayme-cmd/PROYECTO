@@ -4,7 +4,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../../context/AuthContext'
 import { Spinner } from '../../components'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? 'your-google-client-id'
+const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID ?? 'your-google-client-id'
 
 function LoginContent() {
   const { token, login, loading } = useAuth()
