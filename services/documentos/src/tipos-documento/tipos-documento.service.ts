@@ -24,4 +24,10 @@ export class TiposDocumentoService {
     const nuevo = this.repo.create(data);
     return this.repo.save(nuevo);
   }
+
+  async actualizarPlantilla(id: string, rutaRelativa: string): Promise<TipoDocumento> {
+    const tipo = await this.findOne(id);
+    tipo.plantilla_path = rutaRelativa;
+    return this.repo.save(tipo);
+  }
 }
