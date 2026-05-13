@@ -62,6 +62,12 @@ export class AuthService {
     }
 
     const usuario = await this.upsertUsuario(dto.provider, claims);
+
+    // VALIDACIÓN: Evitar que usuarios con estado PENDIENTE_ASIGNACION hagan login
+    if (usuario.estado === EstadoUsuario.PENDIENTE_ASIGNACION) {
+      throw new UnauthorizedException('Usuario pendiente de asignación por un administrador');
+    }
+
     const access_token = this.emitirJwtInterno(usuario);
 
     this.logger.log(`Login exitoso: ${usuario.id} via ${dto.provider}`);

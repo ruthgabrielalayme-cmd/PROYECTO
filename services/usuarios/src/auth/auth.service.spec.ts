@@ -7,9 +7,9 @@ import { UsuariosService } from '../usuarios/usuarios.service';
 import { Provider, EstadoUsuario, Rol } from '../usuarios/usuario.entity';
 import { LoginFederadoDto } from './auth.dto';
 
-// Mock global fetch
+// Mock global fetch - sin importar jest, se usa la variable global de Jest
 const mockFetch = jest.fn();
-global.fetch = mockFetch;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -60,10 +60,7 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  // ─── Test 1: Token CD inválido lanza UnauthorizedException ──────────────
-
   it('debería lanzar UnauthorizedException cuando el token de CD es inválido', async () => {
-    // Simula discovery OK
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -71,7 +68,6 @@ describe('AuthService', () => {
           userinfo_endpoint: 'https://ciudadania.test/userinfo',
         }),
       })
-      // Simula userinfo con error 401
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -86,8 +82,6 @@ describe('AuthService', () => {
       UnauthorizedException,
     );
   });
-
-  // ─── Test 2: Token Google inválido lanza UnauthorizedException ──────────
 
   it('debería lanzar UnauthorizedException cuando el token de Google es inválido', async () => {
     mockFetch.mockResolvedValueOnce({
@@ -105,10 +99,7 @@ describe('AuthService', () => {
     );
   });
 
-  // ─── Test 3: Usuario nuevo se crea con PENDIENTE_ASIGNACION ─────────────
-
-  it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION si sub+provider no existen', async () => {
-    // Mock Google userinfo retorna claims válidos
+  it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION y rechazar login', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -119,11 +110,9 @@ describe('AuthService', () => {
       }),
     });
 
-    // No existe usuario previo por sub ni correo
     usuariosService.findByProviderSub.mockResolvedValueOnce(null);
     usuariosService.findByCorreo.mockResolvedValueOnce(null);
 
-    // Mock save retorna el usuario creado
     const mockUsuario = {
       id: 'uuid-generado',
       provider: Provider.GOOGLE,
@@ -139,7 +128,6 @@ describe('AuthService', () => {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.save.mockResolvedValueOnce(mockUsuario as any);
 
     const dto: LoginFederadoDto = {
@@ -147,12 +135,13 @@ describe('AuthService', () => {
       provider: Provider.GOOGLE,
     };
 
-    const result = await authService.loginFederado(dto);
+    await expect(authService.loginFederado(dto)).rejects.toThrow(UnauthorizedException);
 
     expect(usuariosService.findByProviderSub).toHaveBeenCalledWith(
       Provider.GOOGLE,
       'google_sub_nuevo_123',
     );
+    expect(usuariosService.findByCorreo).toHaveBeenCalledWith('nuevo@example.com');
     expect(usuariosService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         estado: EstadoUsuario.PENDIENTE_ASIGNACION,
@@ -161,11 +150,7 @@ describe('AuthService', () => {
         provider_sub: 'google_sub_nuevo_123',
       }),
     );
-    expect(result.access_token).toBe('mocked.jwt.token');
-    expect(result.perfil.estado).toBe(EstadoUsuario.PENDIENTE_ASIGNACION);
   });
-
-  // ─── Test 4: Usuario existente actualiza metadata sin cambiar area/rol ───
 
   it('debería actualizar metadata de usuario existente sin cambiar area ni rol', async () => {
     mockFetch.mockResolvedValueOnce({
@@ -193,10 +178,11 @@ describe('AuthService', () => {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.findByProviderSub.mockResolvedValueOnce(mockExistente as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    usuariosService.save.mockResolvedValueOnce({ ...mockExistente, correo: 'existente_nuevo_email@example.com' } as any);
+    usuariosService.save.mockResolvedValueOnce({
+      ...mockExistente,
+      correo: 'existente_nuevo_email@example.com',
+    } as any);
 
     const dto: LoginFederadoDto = {
       token: 'valid_google_token_2',
@@ -205,7 +191,6 @@ describe('AuthService', () => {
 
     await authService.loginFederado(dto);
 
-    // Verifica que save recibe el usuario con area y rol intactos
     expect(usuariosService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         area: 'DAF',
@@ -213,6 +198,101 @@ describe('AuthService', () => {
         estado: EstadoUsuario.ACTIVO,
       }),
     );
+    expect(usuariosService.findByCorreo).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalled();
+  });
+
+  it('debería vincular provider_sub a usuario pre-registrado encontrado por correo', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sub: 'google_sub_real_789',
+        email: 'ruthgabrielalayme@gmail.com',
+        name: 'Ruth Gabriela Layme',
+        picture: 'https://photo.url',
+      }),
+    });
+
+    usuariosService.findByProviderSub.mockResolvedValueOnce(null);
+
+    const mockPreRegistrado = {
+      id: 'uuid-preregistrado',
+      provider: Provider.GOOGLE,
+      provider_sub: null,
+      estado: EstadoUsuario.ACTIVO,
+      rol: Rol.ADMIN,
+      area: null,
+      correo: 'ruthgabrielalayme@gmail.com',
+      nombre_completo: 'Ruth Gabriela Layme',
+      foto_url: null,
+      documento_identidad: null,
+      celular: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    usuariosService.findByCorreo.mockResolvedValueOnce(mockPreRegistrado as any);
+
+    const mockVinculado = {
+      ...mockPreRegistrado,
+      provider_sub: 'google_sub_real_789',
+    };
+    usuariosService.save.mockResolvedValue(mockVinculado as any);
+
+    const dto: LoginFederadoDto = {
+      token: 'valid_google_token_3',
+      provider: Provider.GOOGLE,
+    };
+
+    const result = await authService.loginFederado(dto);
+
+    expect(usuariosService.findByCorreo).toHaveBeenCalledWith(
+      'ruthgabrielalayme@gmail.com',
+    );
+    expect(usuariosService.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_sub: 'google_sub_real_789',
+      }),
+    );
+    expect(result.perfil.rol).toBe(Rol.ADMIN);
+    expect(result.perfil.estado).toBe(EstadoUsuario.ACTIVO);
+    expect(result.access_token).toBe('mocked.jwt.token');
+  });
+
+  // NUEVO TEST: verificar que un usuario con estado PENDIENTE_ASIGNACION no pueda loguearse
+  it('debería denegar login si el usuario tiene estado PENDIENTE_ASIGNACION', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sub: 'google_sub_pendiente',
+        email: 'pendiente@example.com',
+        name: 'Usuario Pendiente',
+      }),
+    });
+
+    const usuarioPendiente = {
+      id: 'uuid-pendiente',
+      provider: Provider.GOOGLE,
+      provider_sub: 'google_sub_pendiente',
+      estado: EstadoUsuario.PENDIENTE_ASIGNACION,
+      rol: Rol.FUNCIONARIO,
+      correo: 'pendiente@example.com',
+      nombre_completo: 'Usuario Pendiente',
+      foto_url: null,
+      area: null,
+      documento_identidad: null,
+      celular: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    usuariosService.findByProviderSub.mockResolvedValueOnce(usuarioPendiente as any);
+    usuariosService.save.mockResolvedValueOnce(usuarioPendiente as any);
+
+    const dto: LoginFederadoDto = {
+      token: 'valid_token',
+      provider: Provider.GOOGLE,
+    };
+
+    await expect(authService.loginFederado(dto)).rejects.toThrow(UnauthorizedException);
+    expect(jwtService.sign).not.toHaveBeenCalled();
   });
 });
