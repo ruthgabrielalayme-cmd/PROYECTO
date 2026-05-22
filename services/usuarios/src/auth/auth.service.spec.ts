@@ -7,9 +7,9 @@ import { UsuariosService } from '../usuarios/usuarios.service';
 import { Provider, EstadoUsuario, Rol } from '../usuarios/usuario.entity';
 import { LoginFederadoDto } from './auth.dto';
 
-// Mock global fetch
+// Mock global fetch - sin importar jest, se usa la variable global de Jest
 const mockFetch = jest.fn();
-global.fetch = mockFetch;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -24,7 +24,7 @@ describe('AuthService', () => {
           provide: UsuariosService,
           useValue: {
             findByProviderSub: jest.fn(),
-            findByCorreo: jest.fn(),   // ← NUEVO
+            findByCorreo: jest.fn(),
             save: jest.fn(),
           },
         },
@@ -60,8 +60,6 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  // ─── Test 1: Token CD inválido lanza UnauthorizedException ──────────────
-
   it('debería lanzar UnauthorizedException cuando el token de CD es inválido', async () => {
     mockFetch
       .mockResolvedValueOnce({
@@ -85,8 +83,6 @@ describe('AuthService', () => {
     );
   });
 
-  // ─── Test 2: Token Google inválido lanza UnauthorizedException ──────────
-
   it('debería lanzar UnauthorizedException cuando el token de Google es inválido', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
@@ -103,9 +99,7 @@ describe('AuthService', () => {
     );
   });
 
-  // ─── Test 3: Usuario nuevo se crea con PENDIENTE_ASIGNACION ─────────────
-
-  it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION si sub+provider no existen', async () => {
+  it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -116,9 +110,8 @@ describe('AuthService', () => {
       }),
     });
 
-    // No existe por provider_sub ni por correo
     usuariosService.findByProviderSub.mockResolvedValueOnce(null);
-    usuariosService.findByCorreo.mockResolvedValueOnce(null);  // ← NUEVO
+    usuariosService.findByCorreo.mockResolvedValueOnce(null);
 
     const mockUsuario = {
       id: 'uuid-generado',
@@ -135,7 +128,6 @@ describe('AuthService', () => {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.save.mockResolvedValueOnce(mockUsuario as any);
 
     const dto: LoginFederadoDto = {
@@ -161,8 +153,6 @@ describe('AuthService', () => {
     expect(result.access_token).toBe('mocked.jwt.token');
     expect(result.perfil.estado).toBe(EstadoUsuario.PENDIENTE_ASIGNACION);
   });
-
-  // ─── Test 4: Usuario existente actualiza metadata sin cambiar area/rol ───
 
   it('debería actualizar metadata de usuario existente sin cambiar area ni rol', async () => {
     mockFetch.mockResolvedValueOnce({
@@ -190,9 +180,7 @@ describe('AuthService', () => {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.findByProviderSub.mockResolvedValueOnce(mockExistente as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.save.mockResolvedValueOnce({
       ...mockExistente,
       correo: 'existente_nuevo_email@example.com',
@@ -212,12 +200,9 @@ describe('AuthService', () => {
         estado: EstadoUsuario.ACTIVO,
       }),
     );
-    // findByCorreo NO debe llamarse porque ya encontró por provider_sub
     expect(usuariosService.findByCorreo).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalled();
   });
-
-  // ─── Test 5: Usuario pre-registrado se vincula por correo ───────────────
 
   it('debería vincular provider_sub a usuario pre-registrado encontrado por correo', async () => {
     mockFetch.mockResolvedValueOnce({
@@ -230,10 +215,8 @@ describe('AuthService', () => {
       }),
     });
 
-    // No existe por provider_sub
     usuariosService.findByProviderSub.mockResolvedValueOnce(null);
 
-    // Pero sí existe por correo (pre-registrado manualmente)
     const mockPreRegistrado = {
       id: 'uuid-preregistrado',
       provider: Provider.GOOGLE,
@@ -249,15 +232,12 @@ describe('AuthService', () => {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.findByCorreo.mockResolvedValueOnce(mockPreRegistrado as any);
 
     const mockVinculado = {
       ...mockPreRegistrado,
       provider_sub: 'google_sub_real_789',
     };
-    // save se llama dos veces: vincular sub + actualizar metadata
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuariosService.save.mockResolvedValue(mockVinculado as any);
 
     const dto: LoginFederadoDto = {
@@ -278,5 +258,43 @@ describe('AuthService', () => {
     expect(result.perfil.rol).toBe(Rol.ADMIN);
     expect(result.perfil.estado).toBe(EstadoUsuario.ACTIVO);
     expect(result.access_token).toBe('mocked.jwt.token');
+  });
+
+  // NUEVO TEST: verificar que un usuario con estado PENDIENTE_ASIGNACION no pueda loguearse
+  it('debería denegar login si el usuario tiene estado PENDIENTE_ASIGNACION', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sub: 'google_sub_pendiente',
+        email: 'pendiente@example.com',
+        name: 'Usuario Pendiente',
+      }),
+    });
+
+    const usuarioPendiente = {
+      id: 'uuid-pendiente',
+      provider: Provider.GOOGLE,
+      provider_sub: 'google_sub_pendiente',
+      estado: EstadoUsuario.PENDIENTE_ASIGNACION,
+      rol: Rol.FUNCIONARIO,
+      correo: 'pendiente@example.com',
+      nombre_completo: 'Usuario Pendiente',
+      foto_url: null,
+      area: null,
+      documento_identidad: null,
+      celular: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    usuariosService.findByProviderSub.mockResolvedValueOnce(usuarioPendiente as any);
+    // No debe llamarse a save porque ya existe
+
+    const dto: LoginFederadoDto = {
+      token: 'valid_token',
+      provider: Provider.GOOGLE,
+    };
+
+    await expect(authService.loginFederado(dto)).rejects.toThrow(UnauthorizedException);
+    expect(jwtService.sign).not.toHaveBeenCalled();
   });
 });

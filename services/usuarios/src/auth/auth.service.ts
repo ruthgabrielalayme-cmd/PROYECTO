@@ -35,6 +35,16 @@ interface GoogleClaims {
   picture?: string;
 }
 
+// Respuesta de Google tokeninfo (para ID tokens)
+interface GoogleTokenInfo extends GoogleClaims {
+  aud: string;
+  iss: string;
+  exp: string;
+  iat: string;
+  alg?: string;
+  kid?: string;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -62,6 +72,20 @@ export class AuthService {
     }
 
     const usuario = await this.upsertUsuario(dto.provider, claims);
+
+    // VALIDACIÓN: solo usuarios ACTIVOS pueden hacer login
+    if (usuario.estado !== EstadoUsuario.ACTIVO) {
+      const mensajes: Record<string, string> = {
+        [EstadoUsuario.PENDIENTE_ASIGNACION]:
+          'Tu cuenta está pendiente de asignación. Un administrador debe activarla antes de que puedas acceder.',
+        [EstadoUsuario.INACTIVO]:
+          'Tu cuenta está inactiva. Contactá al administrador del sistema.',
+      };
+      throw new UnauthorizedException(
+        mensajes[usuario.estado] ?? 'Tu cuenta no está habilitada para acceder.',
+      );
+    }
+
     const access_token = this.emitirJwtInterno(usuario);
 
     this.logger.log(`Login exitoso: ${usuario.id} via ${dto.provider}`);
@@ -120,47 +144,61 @@ export class AuthService {
   }
 
   // ─── Validación Google ─────────────────────────────────────────────────────
+  // @react-oauth/google con <GoogleLogin> entrega un ID Token (no Access Token).
+  // El endpoint correcto para verificar ID tokens es tokeninfo, NO userinfo.
 
   private async validarTokenGoogle(token: string): Promise<GoogleClaims> {
-  try {
-    // @react-oauth/google retorna un ID token (JWT), no un access token
-    // Google tiene un endpoint específico para validar ID tokens
-    const res = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${token}`,
-    );
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
 
-    if (!res.ok) {
-      throw new UnauthorizedException('Token Google inválido o expirado');
+    try {
+      // ✅ tokeninfo acepta ID tokens (lo que entrega <GoogleLogin>)
+      const res = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${token}`,
+      );
+
+      if (!res.ok) {
+        this.logger.warn(`Google tokeninfo respondió ${res.status}`);
+        throw new UnauthorizedException('Token de Google inválido o expirado');
+      }
+
+      const info = await res.json() as GoogleTokenInfo;
+
+      // Validar que el token fue emitido para nuestra app
+      if (clientId && info.aud !== clientId) {
+        this.logger.warn(
+          `Token Google con aud incorrecto: esperado ${clientId}, recibido ${info.aud}`,
+        );
+        throw new UnauthorizedException('Token Google no corresponde a esta aplicación');
+      }
+
+      // Validar emisor legítimo de Google
+      const issuers = ['accounts.google.com', 'https://accounts.google.com'];
+      if (!issuers.includes(info.iss)) {
+        throw new UnauthorizedException('Token Google con emisor inválido');
+      }
+
+      if (!info.sub) {
+        throw new UnauthorizedException('Token Google no contiene sub');
+      }
+
+      // Mapear a GoogleClaims estándar
+      const claims: GoogleClaims = {
+        sub: info.sub,
+        email: info.email,
+        email_verified: info.email_verified,
+        name: info.name,
+        given_name: info.given_name,
+        family_name: info.family_name,
+        picture: info.picture,
+      };
+
+      return claims;
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      this.logger.error('Error validando token Google', err);
+      throw new UnauthorizedException('No se pudo validar el token de Google');
     }
-
-    const claims = await res.json() as GoogleClaims & {
-      aud?: string;
-      email_verified?: string;
-    };
-
-    if (!claims.sub) {
-      throw new UnauthorizedException('Token Google no contiene sub');
-    }
-
-    // Verificar que el token es para nuestra app
-    const expectedClientId = this.config.get<string>('GOOGLE_CLIENT_ID');
-    if (expectedClientId && claims.aud !== expectedClientId) {
-      throw new UnauthorizedException('Token Google no corresponde a esta aplicación');
-    }
-
-    return {
-      sub: claims.sub,
-      email: claims.email,
-      email_verified: claims.email_verified === 'true',
-      name: claims.name,
-      picture: claims.picture,
-    };
-  } catch (err) {
-    if (err instanceof UnauthorizedException) throw err;
-    this.logger.error('Error validando token Google', err);
-    throw new UnauthorizedException('No se pudo validar el token de Google');
   }
-}
 
   // ─── Upsert de usuario ─────────────────────────────────────────────────────
 
