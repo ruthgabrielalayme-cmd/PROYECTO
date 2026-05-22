@@ -12,6 +12,7 @@ export class CreateDocumentoDto {
   @IsOptional()
   @IsUUID()
   hoja_ruta_id?: string;
+  area?: string;
 
   /** El nombre base del archivo; el backend añade el identificador */
   @IsString()

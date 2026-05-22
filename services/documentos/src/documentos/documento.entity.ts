@@ -35,6 +35,9 @@ export class Documento {
   @Column({ type: 'varchar', length: 255 })
   nombre_archivo!: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  area!: string | null;
+
   @Column({ type: 'varchar', length: 512, nullable: true })
   archivo_path!: string | null;
 
