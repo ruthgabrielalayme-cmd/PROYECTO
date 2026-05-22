@@ -27,6 +27,33 @@ export class DocumentosService {
     private readonly config: ConfigService,
   ) {}
 
+  async findAllByUser(user: { id: string; rol: string; area: string | null }): Promise<Documento[]> {
+  const qb = this.repo.createQueryBuilder('doc')
+    .leftJoinAndSelect('doc.tipo_documento', 'tipo');
+
+  if (user.rol === 'ADMIN') {
+    // ADMIN ve todos
+    return qb.getMany();
+  } else if (user.rol === 'ENCARGADO') {
+    // ENCARGADO ve documentos de su misma área (los creados por usuarios de esa área)
+    // Nota: necesitas relacionar usuario con área. Como 'creado_por' es UUID, no tenemos área ahí directamente.
+    // Opción: asumir que el área está en la hoja de ruta asociada, o en el perfil del creador (vía otra consulta).
+    // Simplificación (si el campo 'area' del usuario es confiable): filtrar por documentos cuya hoja de ruta tenga area_origen igual a user.area.
+    // Para ello, necesitas hacer un join con hojas_ruta (si tienes la relación en la entidad Documento, pero no la tienes; solo hoja_ruta_id).
+    // Alternativa: traer todos y filtrar en memoria (no eficiente para grandes volúmenes). Mejor hacer consulta a svc_plataforma o agregar campo 'area' en Documento.
+    // Por ahora, asumimos que ENCARGADO ve todos los documentos (temporal). Implementación real requiere ajuste.
+    // Recomiendo agregar columna 'area' en Documento al crearlo (copiado del área del usuario o de la HR).
+    // Dado que es un paso adicional, lo omitimos aquí por brevedad, pero te indico la idea.
+    if (!user.area) return [];
+    qb.andWhere('doc.area = :area', { area: user.area });
+    return qb.getMany();
+  } else {
+    // FUNCIONARIO: solo documentos donde creado_por === user.id
+    qb.andWhere('doc.creado_por = :userId', { userId: user.id });
+    return qb.getMany();
+  }
+}
+
   // ─── Crear documento (BORRADOR) ──────────────────────────────────────────
 
   async create(dto: CreateDocumentoDto): Promise<Documento> {
@@ -41,6 +68,7 @@ export class DocumentosService {
       nombre_archivo,
       estado: EstadoDocumento.BORRADOR,
       creado_por: dto.creado_por,
+      area: dto.area ?? null, 
     });
 
     const saved = await this.repo.save(doc);
@@ -165,4 +193,16 @@ export class DocumentosService {
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes);
   }
+
+async cambiarEstado(id: string, nuevoEstado: EstadoDocumento): Promise<Documento> {
+  const doc = await this.findOne(id);
+  if (doc.estado === EstadoDocumento.EN_FLUJO && nuevoEstado !== EstadoDocumento.EN_FLUJO) {
+    throw new BadRequestException('No se puede cambiar el estado de un documento en flujo');
+  }
+  if (doc.estado !== EstadoDocumento.PDF_SUBIDO && nuevoEstado === EstadoDocumento.EN_FLUJO) {
+    throw new BadRequestException('Solo se puede pasar a EN_FLUJO si el documento está en PDF_SUBIDO');
+  }
+  doc.estado = nuevoEstado;
+  return this.repo.save(doc);
+}
 }

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Module,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,17 +12,38 @@ import { HojasRutaService } from '../hojas-ruta/hojas-ruta.service';
 import { BandejasService } from '../bandejas/bandejas.service';
 import { CreateDerivacionDto } from './derivacion.dto';
 import { TipoBandeja } from '../bandejas/bandeja.entity';
+import { HttpModule } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { EstadoHojaRuta } from 'src/hojas-ruta/hoja-ruta.entity';
+import { ConfigService } from '@nestjs/config';
+
+@Module({
+  imports: [HttpModule],
+  providers: [DerivacionesService],
+})
 
 @Injectable()
 export class DerivacionesService {
   private readonly logger = new Logger(DerivacionesService.name);
+  private readonly documentosUrl: string;
+  private readonly internalToken: string;
 
   constructor(
     @InjectRepository(Derivacion)
     private readonly repo: Repository<Derivacion>,
     private readonly hojasRutaService: HojasRutaService,
     private readonly bandejasService: BandejasService,
-  ) {}
+    private readonly httpService: HttpService,
+    private readonly config: ConfigService,
+  ) {
+    // Dentro del constructor de DerivacionesService
+    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL')!;
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;  // ← nombre correcto
+    if (!this.documentosUrl || !this.internalToken) {
+      this.logger.error('Faltan configuraciones: DOCUMENTOS_URL o INTERNAL_API_SECRET');
+    }
+  }
 
   async create(dto: CreateDerivacionDto): Promise<Derivacion> {
     const hojaRuta = await this.hojasRutaService.findOne(dto.hoja_ruta_id);
@@ -45,33 +67,38 @@ export class DerivacionesService {
 
     const saved = await this.repo.save(derivacion);
 
-    if (dto.es_externa) {
-      // Notificar al encargado del área (en este contexto se asume que
-      // remitente_id lleva info suficiente; en producción consultaría svc_usuarios)
-      await this.bandejasService.crear({
-        usuario_id: dto.remitente_id, // encargado del área de origen
-        hoja_ruta: hojaRuta,
-        tipo: TipoBandeja.PENDIENTE_APROBACION,
-      });
-      this.logger.log(`Derivación externa ${saved.id} → PENDIENTE_APROBACION`);
-    } else {
-      await this.bandejasService.crear({
-        usuario_id: dto.destinatario_id,
-        hoja_ruta: hojaRuta,
-        tipo: TipoBandeja.ENTRANTE,
-      });
-      // Bandeja saliente para el remitente
-      await this.bandejasService.crear({
-        usuario_id: dto.remitente_id,
-        hoja_ruta: hojaRuta,
-        tipo: TipoBandeja.SALIENTE,
-      });
-      this.logger.log(`Derivación interna ${saved.id} → ENVIADA`);
+      // Si es interna, el documento pasa a EN_FLUJO y la HR a EN_PROCESO
+      if (!dto.es_externa) {
+        await this.cambiarEstadoDocumento(dto.documento_id, 'EN_FLUJO');
+        await this.actualizarEstadoHojaRuta(hojaRuta.id);
+      }
+
+      // Crear bandejas
+      if (dto.es_externa) {
+        await this.bandejasService.crear({
+          usuario_id: dto.remitente_id,
+          hoja_ruta: hojaRuta,
+          tipo: TipoBandeja.PENDIENTE_APROBACION,
+        });
+        this.logger.log(`Derivación externa ${saved.id} → PENDIENTE_APROBACION`);
+      } else {
+        await this.bandejasService.crear({
+          usuario_id: dto.destinatario_id,
+          hoja_ruta: hojaRuta,
+          tipo: TipoBandeja.ENTRANTE,
+        });
+        await this.bandejasService.crear({
+          usuario_id: dto.remitente_id,
+          hoja_ruta: hojaRuta,
+          tipo: TipoBandeja.SALIENTE,
+        });
+        this.logger.log(`Derivación interna ${saved.id} → ENVIADA`);
+      }
+
+      return saved;
     }
 
-    return saved;
-  }
-
+  // ─── Aprobar derivación externa ─────────────────────────────────────────
   async aprobar(id: string): Promise<Derivacion> {
     const derivacion = await this.findOne(id);
 
@@ -84,9 +111,13 @@ export class DerivacionesService {
     derivacion.estado = EstadoDerivacion.APROBADA;
     const saved = await this.repo.save(derivacion);
 
-    // Transición automática a ENVIADA y notificación al destinatario
+    // Transición automática a ENVIADA
     saved.estado = EstadoDerivacion.ENVIADA;
     const enviada = await this.repo.save(saved);
+
+    // Una vez enviada, el documento pasa a EN_FLUJO y la HR a EN_PROCESO
+    await this.cambiarEstadoDocumento(derivacion.documento_id, 'EN_FLUJO');
+    await this.actualizarEstadoHojaRuta(derivacion.hoja_ruta.id);
 
     await this.bandejasService.crear({
       usuario_id: derivacion.destinatario_id,
@@ -98,6 +129,7 @@ export class DerivacionesService {
     return enviada;
   }
 
+  // ─── Rechazar derivación externa ────────────────────────────────────────
   async rechazar(id: string, motivo: string): Promise<Derivacion> {
     const derivacion = await this.findOne(id);
 
@@ -111,7 +143,6 @@ export class DerivacionesService {
     derivacion.nota = motivo;
     const saved = await this.repo.save(derivacion);
 
-    // Notificar al remitente (bandeja ENTRANTE con la info del rechazo)
     await this.bandejasService.crear({
       usuario_id: derivacion.remitente_id,
       hoja_ruta: derivacion.hoja_ruta,
@@ -122,6 +153,7 @@ export class DerivacionesService {
     return saved;
   }
 
+
   private async findOne(id: string): Promise<Derivacion> {
     const d = await this.repo.findOne({
       where: { id },
@@ -129,5 +161,35 @@ export class DerivacionesService {
     });
     if (!d) throw new NotFoundException(`Derivacion ${id} no encontrada`);
     return d;
+  }
+  
+    // ─── Cambiar estado del documento en svc_documentos (con token interno) ──
+  private async cambiarEstadoDocumento(documentoId: string, nuevoEstado: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.patch(
+          `${this.documentosUrl}/documentos/${documentoId}/estado`,
+          { estado: nuevoEstado },
+          {
+            headers: {
+              'X-Internal-Token': this.internalToken,
+            },
+          },
+        ),
+      );
+      this.logger.log(`Documento ${documentoId} cambiado a ${nuevoEstado}`);
+    } catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  this.logger.error(`Error al cambiar estado del documento ${documentoId}: ${message}`);
+}
+  }
+
+    private async actualizarEstadoHojaRuta(hojaRutaId: string): Promise<void> {
+    const hr = await this.hojasRutaService.findOne(hojaRutaId);
+    if (hr.estado === EstadoHojaRuta.ABIERTA) {
+      hr.estado = EstadoHojaRuta.EN_PROCESO;
+      await this.hojasRutaService.save(hr);
+      this.logger.log(`HojaRuta ${hojaRutaId} actualizada a EN_PROCESO`);
+    }
   }
 }
