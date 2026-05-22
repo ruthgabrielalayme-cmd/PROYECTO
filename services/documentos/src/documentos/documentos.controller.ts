@@ -10,6 +10,8 @@ import {
   Res,
   BadRequestException,
   UseGuards,
+  Patch,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -18,7 +20,8 @@ import * as fs from 'fs';
 import { DocumentosService } from './documentos.service';
 import { CreateDocumentoDto, SubirPdfDto } from './documento.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-
+import { EstadoDocumento } from './documento.entity';
+import { InternalGuard } from '../guards/internal.guard';
 @Controller('documentos')
 @UseGuards(JwtAuthGuard)
 export class DocumentosController {
@@ -54,8 +57,9 @@ export class DocumentosController {
    * Retorna todos los documentos.
    */
   @Get()
-  findAll() {
-    return this.documentosService.findAll();
+  async findAll(@Req() req: any) {
+    const user = req.user; // viene del JWT (id, rol, area, ...)
+    return this.documentosService.findAllByUser(user);
   }
 
   /**
@@ -63,7 +67,12 @@ export class DocumentosController {
    * Crea un nuevo documento en estado BORRADOR.
    */
   @Post()
-  create(@Body() dto: CreateDocumentoDto) {
+  async create(@Body() dto: CreateDocumentoDto, @Req() req: any) {
+    const user = req.user; // { id, rol, area, ... }
+    // Asignamos el área desde el token (si el usuario tiene área)
+    if (user.area) {
+      dto.area = user.area;
+    }
     return this.documentosService.create(dto);
   }
 
@@ -96,5 +105,21 @@ export class DocumentosController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.documentosService.findOne(id);
+  }
+
+  /**
+   * PATCH /documentos/:id/estado
+   * Cambia el estado de un documento.
+   */
+  @Patch(':id/estado')
+  @UseGuards(InternalGuard)  // ← solo llamadas internas con token
+  async cambiarEstado(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('estado') nuevoEstado: EstadoDocumento,  // ← cambia de 'nuevoEstado' a 'estado'
+  ) {
+    if (!Object.values(EstadoDocumento).includes(nuevoEstado)) {
+      throw new BadRequestException('Estado no válido');
+    }
+    return this.documentosService.cambiarEstado(id, nuevoEstado);
   }
 }
