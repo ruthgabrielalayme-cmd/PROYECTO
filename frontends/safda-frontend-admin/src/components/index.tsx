@@ -27,7 +27,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <p className="font-display text-sm font-bold text-slate-900">SAFDA</p>
-            <p className="text-xs text-primary-600 font-semibold">Panel Admin</p>
+            <p className="text-xs text-primary-600 font-semibold">Menu Principal</p>
           </div>
         </div>
 
@@ -53,7 +53,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-800">
-                {perfil?.nombre_completo ?? perfil?.correo ?? 'Admin'}
+                {perfil?.nombre_completo ?? perfil?.correo ?? 'Rol-Cargo'}
               </p>
               <p className="text-xs text-slate-500">{perfil?.rol}</p>
             </div>

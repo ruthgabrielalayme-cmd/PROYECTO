@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import { documentosService } from '../../api/documentosService'
 import { AdminLayout, PageShell, Spinner, EmptyState, Alert } from '../../components'
+import { useAuth } from '../../context/AuthContext' // Importa el hook
 import type { TipoDocumento } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export default function TiposDocumentoPage() {
+  const { perfil } = useAuth()
+  const isAdmin = perfil?.rol === 'ADMIN'
+
   const [tipos,      setTipos]      = useState<TipoDocumento[]>([])
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
   const [success,    setSuccess]    = useState<string | null>(null)
   const [showForm,   setShowForm]   = useState(false)
 
-  // Form state
   const [nombre,       setNombre]       = useState('')
-  const [plantillaPath, setPlantillaPath] = useState('')
+  const [plantillaFile, setPlantillaFile] = useState<File | null>(null)
   const [submitting,   setSubmitting]   = useState(false)
 
   const cargar = () => {
@@ -32,22 +35,28 @@ export default function TiposDocumentoPage() {
     if (!nombre.trim()) return
     setSubmitting(true)
     setError(null)
+    setSuccess(null)
+
     try {
-      // Llamamos directamente a apiDocumentos ya que documentosService
-      // no expone createTipo — lo agregamos inline aquí
-      const { apiDocumentos } = await import('../../api/client')
-      await apiDocumentos.post('/tipos-documento', {
-        nombre: nombre.trim().toUpperCase(),
-        plantilla_path: plantillaPath.trim() || undefined,
-      })
-      setSuccess(`Tipo "${nombre.toUpperCase()}" creado correctamente.`)
+      // 1. Crear el tipo (solo nombre)
+      const nuevoTipo = await documentosService.crearTipo(nombre.trim().toUpperCase())
+
+      // 2. Si hay archivo, subirlo al nuevo endpoint
+      if (plantillaFile) {
+        await documentosService.subirPlantilla(nuevoTipo.id, plantillaFile)
+        setSuccess(`Tipo "${nombre.toUpperCase()}" creado con plantilla.`)
+      } else {
+        setSuccess(`Tipo "${nombre.toUpperCase()}" creado sin plantilla.`)
+      }
+
       setNombre('')
-      setPlantillaPath('')
+      setPlantillaFile(null)
       setShowForm(false)
       cargar()
       setTimeout(() => setSuccess(null), 4000)
-    } catch {
-      setError('Error al crear el tipo de documento.')
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Error al crear el tipo de documento.'
+      setError(msg)
     } finally {
       setSubmitting(false)
     }
@@ -59,19 +68,20 @@ export default function TiposDocumentoPage() {
         title="Tipos de Documento"
         subtitle="Plantillas disponibles para la generación de documentos"
         action={
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="btn-primary"
-          >
-            {showForm ? 'Cancelar' : '+ Nuevo tipo'}
-          </button>
+          isAdmin ? (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary"
+            >
+              {showForm ? 'Cancelar' : '+ Nuevo tipo'}
+            </button>
+          ) : null
         }
       >
         {error   && <div className="mb-4"><Alert type="error"   message={error} /></div>}
         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-        {/* Formulario de creación */}
-        {showForm && (
+        {showForm && isAdmin && (
           <form onSubmit={handleSubmit} className="card mb-6 p-6">
             <h2 className="mb-4 font-display text-base font-semibold text-slate-800">
               Nuevo Tipo de Documento
@@ -89,14 +99,14 @@ export default function TiposDocumentoPage() {
                 />
               </div>
               <div>
-                <label className="label">Ruta de plantilla (opcional)</label>
+                <label className="label">Plantilla (Word, opcional)</label>
                 <input
-                  type="text"
-                  value={plantillaPath}
-                  onChange={(e) => setPlantillaPath(e.target.value)}
-                  placeholder="./plantillas/MEMORANDUM.docx"
-                  className="input font-mono text-xs"
+                  type="file"
+                  accept=".docx,.doc"
+                  onChange={(e) => setPlantillaFile(e.target.files?.[0] || null)}
+                  className="input"
                 />
+                <p className="mt-1 text-xs text-slate-500">Solo archivos .docx o .doc</p>
               </div>
             </div>
             <div className="mt-4 flex gap-3">
@@ -110,7 +120,6 @@ export default function TiposDocumentoPage() {
           </form>
         )}
 
-        {/* Lista */}
         {loading && <div className="flex justify-center py-16"><Spinner size="lg" /></div>}
 
         {!loading && tipos.length === 0 && (

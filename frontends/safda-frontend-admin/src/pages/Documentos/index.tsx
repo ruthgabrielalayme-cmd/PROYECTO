@@ -3,22 +3,50 @@ import { Link } from 'react-router-dom'
 import { documentosService } from '../../api/documentosService'
 import {
   AdminLayout, PageShell, Spinner, EmptyState, BadgeEstadoDoc,
+  Alert,
 } from '../../components'
-import type { Documento, EstadoDocumento } from '../../types'
+import type { Documento, EstadoDocumento, HojaRuta, TipoDocumento } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useAuth } from '../../context/AuthContext';
+import { plataformaService } from '../../api/plataformaService';
 
 export default function DocumentosPage() {
   const [documentos, setDocumentos] = useState<Documento[]>([])
-  const [loading,    setLoading]    = useState(true)
+  const [loading, setLoading] = useState(true)
   const [busqueda,   setBusqueda]   = useState('')
   const [filtroEstado, setFiltro]   = useState<EstadoDocumento | ''>('')
+  const { perfil } = useAuth();
+  const [showForm, setShowForm] = useState(false);
+  const [tiposDoc, setTiposDoc] = useState<TipoDocumento[]>([]);
+  const [hojasRuta, setHojasRuta] = useState<HojaRuta[]>([]);
+  const [selectedTipo, setSelectedTipo] = useState('');
+  const [selectedHoja, setSelectedHoja] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    documentosService.getAll()
-      .then(setDocumentos)
-      .finally(() => setLoading(false))
-  }, [])
+useEffect(() => {
+  const cargarTodo = async () => {
+    setLoading(true);
+    try {
+      const [tipos, hojas, docs] = await Promise.all([
+        documentosService.getTipos(),
+        plataformaService.getHojasRuta(),
+        documentosService.getAll(),
+      ]);
+      setTiposDoc(tipos);
+      setHojasRuta(hojas);
+      setDocumentos(docs);
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+  cargarTodo();
+}, []);
 
   const filtrados = documentos.filter((d) => {
     const texto = busqueda.toLowerCase()
@@ -32,12 +60,95 @@ export default function DocumentosPage() {
 
   const ESTADOS: EstadoDocumento[] = ['BORRADOR', 'PENDIENTE_SUBIDA', 'PDF_SUBIDO', 'EN_FLUJO']
 
-  return (
+const handleCrearDocumento = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!selectedTipo) return;
+  if (!perfil?.id) {
+    setError('Usuario no identificado');
+    return;
+  }
+  setSubmitting(true);
+  setError(null);
+  try {
+    // Generar un nombre base automático
+    const tipoNombre = tiposDoc.find(t => t.id === selectedTipo)?.nombre || 'DOC';
+    const nombreBase = `${tipoNombre}_${Date.now()}`;
+
+    await documentosService.create({
+      tipo_documento_id: selectedTipo,
+      hoja_ruta_id: selectedHoja || null,
+      creado_por: perfil.id,
+      nombre_base: nombreBase,   // ← Agregar este campo
+    });
+    // ... resto igual
+  } catch (err) {
+    // ...
+  }
+};
+
+  const puedeCrearDoc = perfil?.rol === 'ADMIN' || perfil?.rol === 'ENCARGADO' || perfil?.rol === 'FUNCIONARIO';
+
+ return (
     <AdminLayout>
       <PageShell
         title="Documentos"
         subtitle={`${documentos.length} documentos en el sistema`}
+        action={
+          puedeCrearDoc ? (
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              {showForm ? 'Cancelar' : '+ Nuevo documento'}
+            </button>
+          ) : null
+        }
       >
+        {error && <Alert type="error" message={error} />}
+        {success && <Alert type="success" message={success} />}
+
+        {showForm && (
+          <form onSubmit={handleCrearDocumento} className="card mb-6 p-6">
+            <h2 className="mb-4 font-display text-base font-semibold text-slate-800">
+              Nuevo Documento
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">Tipo de documento *</label>
+                <select
+                  value={selectedTipo}
+                  onChange={(e) => setSelectedTipo(e.target.value)}
+                  className="input"
+                  required
+                >
+                  <option value="">Seleccionar tipo...</option>
+                  {tiposDoc.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Hoja de ruta (opcional)</label>
+                <select
+                  value={selectedHoja}
+                  onChange={(e) => setSelectedHoja(e.target.value)}
+                  className="input"
+                >
+                  <option value="">Sin hoja de ruta</option>
+                  {hojasRuta.map((hr) => (
+                    <option key={hr.id} value={hr.id}>{hr.codigo}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button type="submit" disabled={submitting || !selectedTipo} className="btn-primary">
+                {submitting ? 'Creando...' : 'Crear documento'}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+
         {/* Filtros */}
         <div className="mb-4 flex flex-wrap gap-3">
           <input

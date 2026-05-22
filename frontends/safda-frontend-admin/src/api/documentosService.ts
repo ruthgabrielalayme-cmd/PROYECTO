@@ -16,8 +16,12 @@ export const documentosService = {
   getById: (id: string) =>
     apiDocumentos.get<Documento>(`/documentos/${id}`).then((r) => r.data),
 
-  create: (data: { tipo_documento_id: string; hoja_ruta_id?: string; creado_por: string }) =>
-    apiDocumentos.post<Documento>('/documentos', data).then((r) => r.data),
+  create: (data: { 
+    tipo_documento_id: string; 
+    hoja_ruta_id?: string; 
+    creado_por: string;
+    nombre_base: string;   // ← nuevo campo
+  }) => apiDocumentos.post<Documento>('/documentos', data).then((r) => r.data),
 
   subirPdf: (id: string, file: File, site: string) => {
     const form = new FormData()

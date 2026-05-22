@@ -9,10 +9,10 @@ import { Spinner } from '../../components'
  * El callback en /auth/callback recibe el code/token y llama al backend.
  */
 function buildCDAuthUrl(): string {
-  const issuer      = import.meta.env.VITE_CD_ISSUER      ?? 'https://ciudadania.gob.bo'
+  const issuer      = import.meta.env.VITE_CD_ISSUER      ?? 'https://proveedor.ciudadania.demo.agetic.gob.bo'
   const clientId    = import.meta.env.VITE_CD_CLIENT_ID   ?? 'demo_client'
   const redirectUri = import.meta.env.VITE_CD_REDIRECT_URI ?? 'http://localhost:4200/auth/callback'
-  const scope       = import.meta.env.VITE_CD_SCOPE        ?? 'openid profile email'
+  const scope       = import.meta.env.VITE_CD_SCOPE        ?? 'openid profile offline_access email celular'
   const state       = crypto.randomUUID()
   const nonce       = crypto.randomUUID()
   sessionStorage.setItem('oidc_state', state)
@@ -24,7 +24,8 @@ function buildCDAuthUrl(): string {
     state,
     nonce,
   })
-  return `${issuer}/authorize?${params}`
+  // El endpoint correcto es /auth no /authorize
+  return `${issuer}/auth?${params}`
 }
 
 export default function LoginPage() {

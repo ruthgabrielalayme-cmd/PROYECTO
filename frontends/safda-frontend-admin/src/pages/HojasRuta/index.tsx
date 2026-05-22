@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { plataformaService } from '../../api/plataformaService'
-import { AdminLayout, PageShell, Spinner, EmptyState } from '../../components'
+import { AdminLayout, PageShell, Spinner, EmptyState, Alert } from '../../components'
 import type { HojaRuta, EstadoHojaRuta } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useAuth } from '../../context/AuthContext'; // ajusta la ruta
 
 const estadoColor: Record<EstadoHojaRuta, string> = {
   ABIERTA:   'bg-green-100 text-green-700',
@@ -14,6 +15,12 @@ const estadoColor: Record<EstadoHojaRuta, string> = {
 }
 
 export default function HojasRutaPage() {
+  const { perfil } = useAuth();
+  const [showForm, setShowForm] = useState(false);
+  const [areaOrigen, setAreaOrigen] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [hojas,    setHojas]    = useState<HojaRuta[]>([])
   const [loading,  setLoading]  = useState(true)
   const [busqueda, setBusqueda] = useState('')
@@ -34,12 +41,85 @@ export default function HojasRutaPage() {
     return matchTexto && matchEstado
   })
 
+    const handleCrearHR = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!areaOrigen.trim()) return;
+    if (!perfil?.id) {
+      setError('No se pudo identificar al usuario. Inicia sesión nuevamente.');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await plataformaService.crearHojaRuta({
+        area_origen: areaOrigen.trim().toUpperCase(),
+        creado_por: perfil.id,
+      });
+      setSuccess('Hoja de ruta creada correctamente');
+      setAreaOrigen('');
+      setShowForm(false);
+      // Recargar lista
+      const nuevas = await plataformaService.getHojasRuta();
+      setHojas(nuevas);
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al crear hoja de ruta');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+    const puedeCrearHR = perfil?.rol === 'ADMIN' || perfil?.rol === 'ENCARGADO' || perfil?.rol === 'FUNCIONARIO';
+
   return (
     <AdminLayout>
       <PageShell
         title="Hojas de Ruta"
         subtitle={`${hojas.length} hojas de ruta en el sistema`}
+        action={
+          puedeCrearHR ? (
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              {showForm ? 'Cancelar' : '+ Nueva hoja de ruta'}
+            </button>
+          ) : null
+        }
       >
+         {/* Mostrar mensajes */}
+        {error && <Alert type="error" message={error} />}
+        {success && <Alert type="success" message={success} />}
+
+        {/* Formulario de creación */}
+        {showForm && (
+          <form onSubmit={handleCrearHR} className="card mb-6 p-6">
+            <h2 className="mb-4 font-display text-base font-semibold text-slate-800">
+              Nueva Hoja de Ruta
+            </h2>
+            <div className="grid gap-4">
+              <div>
+                <label className="label">Área de origen *</label>
+                <input
+                  type="text"
+                  value={areaOrigen}
+                  onChange={(e) => setAreaOrigen(e.target.value)}
+                  placeholder="Ej: DAF, RRHH, TEC"
+                  required
+                  className="input"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  {perfil?.rol !== 'ADMIN' && `Tu área actual es ${perfil?.area ?? 'sin asignar'}. Solo puedes crear HR para tu misma área.`}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button type="submit" disabled={submitting || !areaOrigen.trim()} className="btn-primary">
+                {submitting ? 'Creando...' : 'Crear hoja de ruta'}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
         {/* Filtros */}
         <div className="mb-4 flex flex-wrap gap-3">
           <input
@@ -107,6 +187,8 @@ export default function HojasRutaPage() {
             </table>
           </div>
         )}
+
+        
       </PageShell>
     </AdminLayout>
   )

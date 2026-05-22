@@ -12,6 +12,14 @@ export const plataformaService = {
   getHojaRuta: (id: string) =>
     apiPlataforma.get<HojaRuta>(`/hojas-ruta/${id}`).then((r) => r.data),
 
+    // En plataformaService.ts
+  generarSite: (area: string, anio?: number) =>
+    apiPlataforma
+      .get<{ site: string }>('/correlativos/generar-site', {
+        params: { area, anio: anio || new Date().getFullYear() },
+      })
+      .then((r) => r.data),
+
   // Derivaciones
   derivar: (data: {
     hoja_ruta_id: string
