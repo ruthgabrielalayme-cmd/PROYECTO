@@ -12,6 +12,9 @@ export class CreateDocumentoDto {
   @IsOptional()
   @IsUUID()
   hoja_ruta_id?: string;
+
+  @IsOptional()
+  @IsString()
   area?: string;
 
   /** UUID del usuario que crea el documento (viene del JWT) */
