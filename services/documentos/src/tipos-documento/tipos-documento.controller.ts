@@ -14,7 +14,7 @@ export class TiposDocumentoController {
   constructor(private readonly service: TiposDocumentoService) {}
 
   @Get()
-  @Roles('ADMIN', 'ENCARGADO')
+  @Roles('ADMIN', 'ENCARGADO', 'FUNCIONARIO')
   findAll() {
     return this.service.findAll();
   }
