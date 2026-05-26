@@ -83,7 +83,10 @@ export class DocumentosService {
   }
 
   async findOne(id: string): Promise<Documento> {
-    const doc = await this.repo.findOne({ where: { id } });
+    const doc = await this.repo.findOne({
+      where: { id },
+      relations: ['tipo_documento'],
+    });
     if (!doc) throw new NotFoundException(`Documento ${id} no encontrado`);
     return doc;
   }

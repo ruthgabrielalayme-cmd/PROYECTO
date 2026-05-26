@@ -11,6 +11,7 @@ import UsuariosPage       from './pages/Usuarios'
 import UsuarioDetalle     from './pages/Usuarios/UsuarioDetalle'
 import TiposDocumentoPage from './pages/TiposDocumento'
 import DocumentosPage     from './pages/Documentos'
+import NuevoDocumento     from './pages/Documentos/NuevoDocumento'
 import DocumentoDetalle   from './pages/Documentos/DocumentoDetalle'
 import HojasRutaPage      from './pages/HojasRuta'
 import HojaRutaDetalle    from './pages/HojasRuta/HojaRutaDetalle'
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/usuarios/:id"         element={<UsuarioDetalle />} />
             <Route path="/tipos-documento"      element={<TiposDocumentoPage />} />
             <Route path="/documentos"           element={<DocumentosPage />} />
+            <Route path="/documentos/nuevo"     element={<NuevoDocumento />} />
             <Route path="/documentos/:id"       element={<DocumentoDetalle />} />
             <Route path="/hojas-ruta"           element={<HojasRutaPage />} />
             <Route path="/hojas-ruta/:id"       element={<HojaRutaDetalle />} />
