@@ -9,11 +9,20 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const loc = useLocation()
 
   const navItems = [
-    { to: '/dashboard',      icon: '⊞', label: 'Dashboard' },
-    { to: '/usuarios',       icon: '👥', label: 'Usuarios' },
-    { to: '/tipos-documento',icon: '📋', label: 'Tipos de Documento' },
-    { to: '/documentos',     icon: '📄', label: 'Documentos' },
-    { to: '/hojas-ruta',     icon: '📂', label: 'Hojas de Ruta' },
+    { to: '/dashboard',        icon: '⊞', label: 'Dashboard',           section: 'general' },
+    { to: '/bandeja-entrada',  icon: '📥', label: 'Bandeja Entrada',     section: 'operativo' },
+    { to: '/bandeja-salida',   icon: '📤', label: 'Bandeja Salida',      section: 'operativo' },
+    { to: '/documentos/nuevo', icon: '➕', label: 'Nuevo Documento',     section: 'operativo' },
+    { to: '/documentos',       icon: '📄', label: 'Documentos',          section: 'operativo' },
+    { to: '/hojas-ruta',       icon: '📂', label: 'Hojas de Ruta',       section: 'operativo' },
+    { to: '/usuarios',         icon: '👥', label: 'Usuarios',            section: 'admin' },
+    { to: '/tipos-documento',  icon: '📋', label: 'Tipos de Documento',  section: 'admin' },
+  ]
+
+  const sections = [
+    { key: 'general',   label: 'General' },
+    { key: 'operativo', label: 'Operativo' },
+    { key: 'admin',     label: 'Administración' },
   ]
 
   return (
@@ -27,21 +36,34 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <p className="font-display text-sm font-bold text-slate-900">SAFDA</p>
-            <p className="text-xs text-primary-600 font-semibold">Menu Principal</p>
+            <p className="text-xs text-primary-600 font-semibold">Sector Privado</p>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`sidebar-link ${loc.pathname.startsWith(item.to) ? 'active' : ''}`}
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </Link>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+          {sections.map((section) => (
+            <div key={section.key}>
+              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                {section.label}
+              </p>
+              <div className="space-y-0.5">
+                {navItems.filter((i) => i.section === section.key).map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`sidebar-link ${
+                      item.to === '/documentos/nuevo'
+                        ? loc.pathname === item.to ? 'active' : ''
+                        : loc.pathname.startsWith(item.to) ? 'active' : ''
+                    }`}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
@@ -53,7 +75,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-800">
-                {perfil?.nombre_completo ?? perfil?.correo ?? 'Rol-Cargo'}
+                {perfil?.nombre_completo ?? perfil?.correo ?? 'Admin'}
               </p>
               <p className="text-xs text-slate-500">{perfil?.rol}</p>
             </div>
@@ -167,4 +189,27 @@ const estadoUsuario: Record<string, string> = {
 }
 export function BadgeEstadoUsuario({ estado }: { estado: string }) {
   return <span className={`badge ${estadoUsuario[estado] ?? 'bg-slate-100 text-slate-600'}`}>{estado.replace('_', ' ')}</span>
+}
+
+// ─── Badges adicionales para módulos operativos ───────────────────────────
+import type { TipoBandeja } from '../types'
+
+const estadoDer: Record<EstadoDerivacion, string> = {
+  PENDIENTE_APROBACION: 'bg-amber-100 text-amber-700',
+  APROBADA:             'bg-blue-100 text-blue-700',
+  RECHAZADA:            'bg-red-100 text-red-700',
+  ENVIADA:              'bg-indigo-100 text-indigo-700',
+  RECIBIDA:             'bg-green-100 text-green-700',
+}
+export function BadgeEstadoDer({ estado }: { estado: EstadoDerivacion }) {
+  return <span className={`badge ${estadoDer[estado]}`}>{estado.replace(/_/g, ' ')}</span>
+}
+
+const tipoBandeja: Record<TipoBandeja, string> = {
+  ENTRANTE:             'bg-green-100 text-green-700',
+  SALIENTE:             'bg-blue-100 text-blue-700',
+  PENDIENTE_APROBACION: 'bg-amber-100 text-amber-700',
+}
+export function BadgeTipoBandeja({ tipo }: { tipo: TipoBandeja }) {
+  return <span className={`badge ${tipoBandeja[tipo]}`}>{tipo.replace(/_/g, ' ')}</span>
 }

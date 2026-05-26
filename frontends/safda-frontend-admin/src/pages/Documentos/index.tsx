@@ -60,7 +60,7 @@ useEffect(() => {
 
   const ESTADOS: EstadoDocumento[] = ['BORRADOR', 'PENDIENTE_SUBIDA', 'PDF_SUBIDO', 'EN_FLUJO']
 
-const handleCrearDocumento = async (e: React.FormEvent) => {
+  const handleCrearDocumento = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!selectedTipo) return;
   if (!perfil?.id) {
@@ -70,25 +70,39 @@ const handleCrearDocumento = async (e: React.FormEvent) => {
   setSubmitting(true);
   setError(null);
   try {
-    // Generar un nombre base automático
     const tipoNombre = tiposDoc.find(t => t.id === selectedTipo)?.nombre || 'DOC';
     const nombreBase = `${tipoNombre}_${Date.now()}`;
 
     await documentosService.create({
       tipo_documento_id: selectedTipo,
-      hoja_ruta_id: selectedHoja || null,
+      //hoja_ruta_id: selectedHoja || null,
+      hoja_ruta_id: selectedHoja || undefined,
       creado_por: perfil.id,
-      nombre_base: nombreBase,   // ← Agregar este campo
+      nombre_base: nombreBase,
     });
-    // ... resto igual
-  } catch (err) {
-    // ...
+
+    setSuccess('Documento creado correctamente');
+    setSelectedTipo('');
+    setSelectedHoja('');
+    setShowForm(false);
+    
+    // Recargar la lista de documentos
+    const nuevos = await documentosService.getAll();
+    setDocumentos(nuevos);
+    
+    setTimeout(() => setSuccess(null), 4000);
+  } catch (err: any) {
+    console.error('Error al crear documento:', err);
+    const msg = err.response?.data?.message || 'Error al crear documento';
+    setError(msg);
+  } finally {
+    setSubmitting(false);
   }
 };
 
   const puedeCrearDoc = perfil?.rol === 'ADMIN' || perfil?.rol === 'ENCARGADO' || perfil?.rol === 'FUNCIONARIO';
 
- return (
+  return (
     <AdminLayout>
       <PageShell
         title="Documentos"

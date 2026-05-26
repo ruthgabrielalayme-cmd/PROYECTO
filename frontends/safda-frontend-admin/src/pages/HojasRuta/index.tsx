@@ -17,7 +17,6 @@ const estadoColor: Record<EstadoHojaRuta, string> = {
 export default function HojasRutaPage() {
   const { perfil } = useAuth();
   const [showForm, setShowForm] = useState(false);
-  const [areaOrigen, setAreaOrigen] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -43,20 +42,24 @@ export default function HojasRutaPage() {
 
     const handleCrearHR = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!areaOrigen.trim()) return;
-    if (!perfil?.id) {
-      setError('No se pudo identificar al usuario. Inicia sesión nuevamente.');
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      await plataformaService.crearHojaRuta({
-        area_origen: areaOrigen.trim().toUpperCase(),
-        creado_por: perfil.id,
-      });
+      if (!perfil?.area) {
+        setError('Tu usuario no tiene un área asignada. Contacta al administrador.');
+        return;
+      }
+      if (!perfil?.id) {
+        setError('No se pudo identificar al usuario.');
+        return;
+      }
+      setSubmitting(true);   // ← Añade esto
+      setError(null);
+      try {
+        await plataformaService.crearHojaRuta({
+          area_origen: perfil.area.trim().toUpperCase(),
+          creado_por: perfil.id,
+        });
+
       setSuccess('Hoja de ruta creada correctamente');
-      setAreaOrigen('');
+      // setAreaOrigen('');
       setShowForm(false);
       // Recargar lista
       const nuevas = await plataformaService.getHojasRuta();
@@ -96,23 +99,23 @@ export default function HojasRutaPage() {
             </h2>
             <div className="grid gap-4">
               <div>
-                <label className="label">Área de origen *</label>
+                <label className="label">Área de origen</label>
                 <input
                   type="text"
-                  value={areaOrigen}
-                  onChange={(e) => setAreaOrigen(e.target.value)}
-                  placeholder="Ej: DAF, RRHH, TEC"
-                  required
-                  className="input"
+                  value={perfil?.area || ''}
+                  disabled
+                  className="input bg-slate-100"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  {perfil?.rol !== 'ADMIN' && `Tu área actual es ${perfil?.area ?? 'sin asignar'}. Solo puedes crear HR para tu misma área.`}
+                  El área se asigna automáticamente según tu perfil.
                 </p>
               </div>
             </div>
             <div className="mt-4 flex gap-3">
-              <button type="submit" disabled={submitting || !areaOrigen.trim()} className="btn-primary">
-                {submitting ? 'Creando...' : 'Crear hoja de ruta'}
+              <button   type="submit"
+                        disabled={submitting || !perfil?.area}   // ← areaOrigen siempre es ''
+                        className="btn-primary">
+                {submitting ? 'Creando...' : 'Crear Hoja de Ruta'}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
                 Cancelar
