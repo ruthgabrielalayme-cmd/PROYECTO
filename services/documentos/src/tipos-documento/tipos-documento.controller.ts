@@ -7,7 +7,6 @@ import { CreateTipoDocumentoDto } from './tipo-documento.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Rol } from '../usuarios/roles.enum'; // Ajustado a la ruta local
 
 @Controller('tipos-documento')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -15,26 +14,26 @@ export class TiposDocumentoController {
   constructor(private readonly service: TiposDocumentoService) {}
 
   @Get()
-  @Roles(Rol.ADMIN, Rol.ENCARGADO)
+  @Roles('ADMIN', 'ENCARGADO')
   findAll() {
     return this.service.findAll();
   }
 
   @Get(':id')
-  @Roles(Rol.ADMIN, Rol.ENCARGADO, Rol.FUNCIONARIO)
+  @Roles('ADMIN', 'ENCARGADO', 'FUNCIONARIO')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
   }
 
   @Post()
-  @Roles(Rol.ADMIN)
+  @Roles('ADMIN')
   create(@Body() dto: CreateTipoDocumentoDto) {
     // El DTO solo tiene 'nombre' (ya no tiene plantilla_path)
     return this.service.create(dto);
   }
 
   @Post(':id/plantilla')
-  @Roles(Rol.ADMIN)
+  @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('archivo', {
     storage: diskStorage({
       destination: './storage/plantillas', // carpeta donde se guardarán

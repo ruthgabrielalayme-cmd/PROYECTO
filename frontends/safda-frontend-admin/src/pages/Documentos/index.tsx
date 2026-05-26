@@ -71,14 +71,11 @@ useEffect(() => {
   setError(null);
   try {
     const tipoNombre = tiposDoc.find(t => t.id === selectedTipo)?.nombre || 'DOC';
-    const nombreBase = `${tipoNombre}_${Date.now()}`;
-
     await documentosService.create({
       tipo_documento_id: selectedTipo,
       //hoja_ruta_id: selectedHoja || null,
       hoja_ruta_id: selectedHoja || undefined,
       creado_por: perfil.id,
-      nombre_base: nombreBase,
     });
 
     setSuccess('Documento creado correctamente');

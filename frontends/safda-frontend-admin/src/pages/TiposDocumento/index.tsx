@@ -39,7 +39,7 @@ export default function TiposDocumentoPage() {
 
     try {
       // 1. Crear el tipo (solo nombre)
-      const nuevoTipo = await documentosService.crearTipo(nombre.trim().toUpperCase())
+      const nuevoTipo = await documentosService.crearTipo({ nombre: nombre.trim().toUpperCase() })
 
       // 2. Si hay archivo, subirlo al nuevo endpoint
       if (plantillaFile) {

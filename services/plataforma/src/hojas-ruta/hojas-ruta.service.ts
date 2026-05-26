@@ -34,10 +34,10 @@ export class HojasRutaService {
     qb.andWhere('hr.area_origen = :area', { area: user.area });
     return qb.getMany();
   } else {
-    // FUNCIONARIO: HR donde es creador (creado_por) o está involucrado como remitente/destinatario en alguna derivación
+    // FUNCIONARIO: HR de su área, o donde es creador, o está involucrado en alguna derivación
     qb.andWhere(
-      '(hr.creado_por = :userId OR EXISTS (SELECT 1 FROM derivaciones d WHERE d.hoja_ruta_id = hr.id AND (d.remitente_id = :userId OR d.destinatario_id = :userId)))',
-      { userId: user.id },
+      '(hr.area_origen = :area OR hr.creado_por = :userId OR EXISTS (SELECT 1 FROM derivaciones d WHERE d.hoja_ruta_id = hr.id AND (d.remitente_id = :userId OR d.destinatario_id = :userId)))',
+      { area: user.area, userId: user.id },
     );
     return qb.getMany();
   }

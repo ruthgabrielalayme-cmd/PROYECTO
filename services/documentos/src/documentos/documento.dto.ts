@@ -14,11 +14,6 @@ export class CreateDocumentoDto {
   hoja_ruta_id?: string;
   area?: string;
 
-  /** El nombre base del archivo; el backend añade el identificador */
-  @IsString()
-  @IsNotEmpty()
-  nombre_base!: string;
-
   /** UUID del usuario que crea el documento (viene del JWT) */
   @IsUUID()
   creado_por!: string;

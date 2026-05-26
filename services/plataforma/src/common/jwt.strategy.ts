@@ -22,8 +22,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload {
+  validate(payload: JwtPayload): any {
     if (!payload.sub) throw new UnauthorizedException('Token inválido');
-    return payload;
+    // Mapear sub a id para que req.user.id esté disponible
+    return {
+      id: payload.sub,
+      rol: payload.rol,
+      area: payload.area,
+      provider: payload.provider
+    };
   }
 }

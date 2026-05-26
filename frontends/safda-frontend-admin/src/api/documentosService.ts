@@ -6,6 +6,17 @@ export const documentosService = {
   getTipos: () =>
     apiDocumentos.get<TipoDocumento[]>('/tipos-documento').then((r) => r.data),
 
+  crearTipo: (data: { nombre: string }) =>
+    apiDocumentos.post<TipoDocumento>('/tipos-documento', data).then((r) => r.data),
+
+  subirPlantilla: (tipoId: string, file: File) => {
+    const form = new FormData()
+    form.append('archivo', file)
+    return apiDocumentos.post(`/tipos-documento/${tipoId}/plantilla`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data)
+  },
+
   descargarPlantilla: (tipoId: string) =>
     apiDocumentos.get(`/documentos/plantilla/${tipoId}`, { responseType: 'blob' }).then((r) => r.data),
 
@@ -20,7 +31,6 @@ export const documentosService = {
     tipo_documento_id: string; 
     hoja_ruta_id?: string; 
     creado_por: string;
-    nombre_base: string;   // ← nuevo campo
   }) => apiDocumentos.post<Documento>('/documentos', data).then((r) => r.data),
 
   subirPdf: (id: string, file: File, site: string) => {

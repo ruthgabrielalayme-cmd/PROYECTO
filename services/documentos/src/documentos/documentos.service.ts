@@ -48,8 +48,8 @@ export class DocumentosService {
     qb.andWhere('doc.area = :area', { area: user.area });
     return qb.getMany();
   } else {
-    // FUNCIONARIO: solo documentos donde creado_por === user.id
-    qb.andWhere('doc.creado_por = :userId', { userId: user.id });
+    // FUNCIONARIO: documentos de su área o donde es creador
+    qb.andWhere('(doc.area = :area OR doc.creado_por = :userId)', { area: user.area, userId: user.id });
     return qb.getMany();
   }
 }
