@@ -12,21 +12,16 @@ import { HojasRutaService } from '../hojas-ruta/hojas-ruta.service';
 import { BandejasService } from '../bandejas/bandejas.service';
 import { CreateDerivacionDto } from './derivacion.dto';
 import { TipoBandeja } from '../bandejas/bandeja.entity';
-import { HttpModule } from '@nestjs/axios';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { EstadoHojaRuta } from 'src/hojas-ruta/hoja-ruta.entity';
 import { ConfigService } from '@nestjs/config';
 
-@Module({
-  imports: [HttpModule],
-  providers: [DerivacionesService],
-})
-
 @Injectable()
 export class DerivacionesService {
   private readonly logger = new Logger(DerivacionesService.name);
   private readonly documentosUrl: string;
+  private readonly usuariosUrl: string;
   private readonly internalToken: string;
 
   constructor(
@@ -38,10 +33,11 @@ export class DerivacionesService {
     private readonly config: ConfigService,
   ) {
     // Dentro del constructor de DerivacionesService
-    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL')!;
+    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL') || this.config.get<string>('DOCUMENTOS_SERVICE_URL')!;
+    this.usuariosUrl = this.config.get<string>('USUARIOS_URL') || this.config.get<string>('USUARIOS_SERVICE_URL')!;
     this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;  // ← nombre correcto
-    if (!this.documentosUrl || !this.internalToken) {
-      this.logger.error('Faltan configuraciones: DOCUMENTOS_URL o INTERNAL_API_SECRET');
+    if (!this.documentosUrl || !this.usuariosUrl || !this.internalToken) {
+      this.logger.error('Faltan configuraciones: DOCUMENTOS_URL, USUARIOS_URL o INTERNAL_API_SECRET');
     }
   }
 
@@ -75,12 +71,45 @@ export class DerivacionesService {
 
       // Crear bandejas
       if (dto.es_externa) {
+        let encargadoId = dto.remitente_id; // Fallback
+
+        try {
+          // Intentar obtener el área del remitente
+          const remitenteRes = await firstValueFrom(
+            this.httpService.get(`${this.usuariosUrl}/usuarios/${dto.remitente_id}`, {
+              headers: { 'X-Internal-Token': this.internalToken },
+            })
+          ).catch(() => null);
+
+          if (remitenteRes?.data?.area) {
+             const encargadoRes = await firstValueFrom(
+               this.httpService.get(`${this.usuariosUrl}/usuarios/internos/encargado/${remitenteRes.data.area}`, {
+                 headers: { 'X-Internal-Token': this.internalToken },
+               })
+             ).catch(() => null);
+
+             if (encargadoRes?.data?.id) {
+                encargadoId = encargadoRes.data.id;
+             }
+          }
+        } catch (error) {
+          this.logger.error(`Error al buscar encargado: ${error}`);
+        }
+
         await this.bandejasService.crear({
-          usuario_id: dto.remitente_id,
+          usuario_id: encargadoId, // Asignado al encargado
           hoja_ruta: hojaRuta,
           tipo: TipoBandeja.PENDIENTE_APROBACION,
         });
-        this.logger.log(`Derivación externa ${saved.id} → PENDIENTE_APROBACION`);
+
+        // Crear bandeja SALIENTE para el remitente
+        await this.bandejasService.crear({
+          usuario_id: dto.remitente_id,
+          hoja_ruta: hojaRuta,
+          tipo: TipoBandeja.SALIENTE,
+        });
+
+        this.logger.log(`Derivación externa ${saved.id} → PENDIENTE_APROBACION (Encargado: ${encargadoId}) y SALIENTE`);
       } else {
         await this.bandejasService.crear({
           usuario_id: dto.destinatario_id,

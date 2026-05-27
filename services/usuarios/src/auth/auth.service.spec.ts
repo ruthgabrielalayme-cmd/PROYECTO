@@ -99,10 +99,11 @@ describe('AuthService', () => {
     );
   });
 
-  it('debería crear un usuario nuevo con estado PENDIENTE_ASIGNACION', async () => {
+  it('debería denegar el login tras crear un usuario nuevo con estado PENDIENTE_ASIGNACION', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        iss: 'accounts.google.com',
         sub: 'google_sub_nuevo_123',
         email: 'nuevo@example.com',
         name: 'Nuevo Usuario',
@@ -135,7 +136,7 @@ describe('AuthService', () => {
       provider: Provider.GOOGLE,
     };
 
-    const result = await authService.loginFederado(dto);
+    await expect(authService.loginFederado(dto)).rejects.toThrow(UnauthorizedException);
 
     expect(usuariosService.findByProviderSub).toHaveBeenCalledWith(
       Provider.GOOGLE,
@@ -150,14 +151,13 @@ describe('AuthService', () => {
         provider_sub: 'google_sub_nuevo_123',
       }),
     );
-    expect(result.access_token).toBe('mocked.jwt.token');
-    expect(result.perfil.estado).toBe(EstadoUsuario.PENDIENTE_ASIGNACION);
   });
 
   it('debería actualizar metadata de usuario existente sin cambiar area ni rol', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        iss: 'accounts.google.com',
         sub: 'google_sub_existente_456',
         email: 'existente_nuevo_email@example.com',
         name: 'Nombre Actualizado',
@@ -208,6 +208,7 @@ describe('AuthService', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        iss: 'accounts.google.com',
         sub: 'google_sub_real_789',
         email: 'ruthgabrielalayme@gmail.com',
         name: 'Ruth Gabriela Layme',
@@ -265,6 +266,7 @@ describe('AuthService', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        iss: 'accounts.google.com',
         sub: 'google_sub_pendiente',
         email: 'pendiente@example.com',
         name: 'Usuario Pendiente',
@@ -287,7 +289,8 @@ describe('AuthService', () => {
       updated_at: new Date(),
     };
     usuariosService.findByProviderSub.mockResolvedValueOnce(usuarioPendiente as any);
-    // No debe llamarse a save porque ya existe
+    // Debe llamarse a save para actualizar la metadata antes de denegar
+    usuariosService.save.mockResolvedValueOnce(usuarioPendiente as any);
 
     const dto: LoginFederadoDto = {
       token: 'valid_token',
