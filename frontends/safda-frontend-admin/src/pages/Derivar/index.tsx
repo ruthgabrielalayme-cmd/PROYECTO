@@ -91,7 +91,13 @@ export default function DerivarDocumento() {
               >
                 <option value="">Seleccioná un destinatario...</option>
                 {usuarios
-                  .filter((u) => u.id !== perfil?.id && u.estado === 'ACTIVO')
+                  .filter((u) => {
+                    if (u.id === perfil?.id || u.estado !== 'ACTIVO') return false
+                    // Mostrar a ENCARGADOS de todas las áreas y a los usuarios (FUNCIONARIO/ENCARGADO) de la misma área
+                    if (u.area === perfil?.area) return true
+                    if (u.rol === 'ENCARGADO') return true
+                    return false
+                  })
                   .map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.nombre_completo ?? u.correo ?? u.id} — {u.area ?? 'Sin área'} ({u.rol})

@@ -20,13 +20,12 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Get()
-  @Roles(Rol.ADMIN)
+  // Permite a ADMIN, ENCARGADO y FUNCIONARIO ver la lista de usuarios para derivaciones
   findAll() {
     return this.usuariosService.findAll();
   }
 
   @Get(':id')
-  @Roles(Rol.ADMIN, Rol.ENCARGADO)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usuariosService.findOne(id);
   }
