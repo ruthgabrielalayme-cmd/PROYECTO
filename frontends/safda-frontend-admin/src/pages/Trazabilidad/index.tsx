@@ -86,7 +86,17 @@ export default function TrazabilidadPage() {
 
             {/* Datos del documento */}
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <h2 className="mb-4 font-display text-lg font-bold text-white">Información del Documento</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-display text-lg font-bold text-white">Información del Documento</h2>
+                <a
+                  href={`http://localhost:3002/documentos/${data.documento.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg bg-indigo-500/20 px-3 py-1.5 text-xs font-semibold text-indigo-300 transition hover:bg-indigo-500/30"
+                >
+                  Ver PDF
+                </a>
+              </div>
               <dl className="space-y-3">
                 {[
                   ['Tipo',         data.documento.tipo_documento.nombre],

@@ -32,7 +32,7 @@ export default function DetalleDocumento() {
         subtitle={`Creado el ${format(new Date(doc.created_at), "dd 'de' MMMM yyyy", { locale: es })}`}
         action={
           <div className="flex gap-2">
-            {doc.estado !== 'EN_FLUJO' && (
+            {doc.estado !== 'EN_FLUJO' && doc.estado !== 'FINALIZADO' && doc.estado !== 'PDF_SUBIDO' && (
               <Link to={`/documentos/${id}/subir-pdf`} className="btn-primary">
                 Subir PDF
               </Link>
@@ -41,6 +41,16 @@ export default function DetalleDocumento() {
               <Link to={`/derivar/${id}`} className="btn-secondary">
                 Derivar
               </Link>
+            )}
+            {(doc.estado === 'PDF_SUBIDO' || doc.estado === 'EN_FLUJO' || doc.estado === 'FINALIZADO') && (
+              <a
+                href={`http://localhost:3002/documentos/${id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary bg-indigo-600 hover:bg-indigo-700"
+              >
+                Ver PDF
+              </a>
             )}
           </div>
         }

@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { HojaRuta } from './hoja-ruta.entity';
+import axios from 'axios';
+import { HojaRuta, EstadoHojaRuta } from './hoja-ruta.entity';
 import { CreateHojaRutaDto } from './hoja-ruta.dto';
 
 @Injectable()
@@ -13,8 +14,21 @@ export class HojasRutaService {
     private readonly repo: Repository<HojaRuta>,
   ) {}
 
-  async findAll(): Promise<HojaRuta[]> {
-    return this.repo.find({ relations: ['derivaciones'] });
+  async findAll(user: any): Promise<HojaRuta[]> {
+    if (user.rol === 'ADMIN') {
+      return this.repo.find({ relations: ['derivaciones'] });
+    } else if (user.rol === 'ENCARGADO') {
+      return this.repo.find({
+        where: { area_origen: user.area },
+        relations: ['derivaciones'],
+      });
+    } else {
+      // FUNCIONARIO
+      return this.repo.find({
+        where: { creado_por: user.sub },
+        relations: ['derivaciones'],
+      });
+    }
   }
 
   async create(dto: CreateHojaRutaDto): Promise<HojaRuta> {
@@ -39,6 +53,37 @@ export class HojasRutaService {
     });
     if (!hr) throw new NotFoundException(`HojaRuta ${id} no encontrada`);
     return hr;
+  }
+
+  async cerrar(id: string): Promise<HojaRuta> {
+    const hr = await this.findOne(id);
+    if (hr.estado === EstadoHojaRuta.CERRADA || hr.estado === EstadoHojaRuta.ARCHIVADA) {
+      throw new BadRequestException('La hoja de ruta ya está cerrada o archivada');
+    }
+    hr.estado = EstadoHojaRuta.CERRADA;
+    const saved = await this.repo.save(hr);
+    await this.finalizarDocumentosAsociados(id);
+    return saved;
+  }
+
+  async archivar(id: string): Promise<HojaRuta> {
+    const hr = await this.findOne(id);
+    if (hr.estado === EstadoHojaRuta.ARCHIVADA) {
+      throw new BadRequestException('La hoja de ruta ya está archivada');
+    }
+    hr.estado = EstadoHojaRuta.ARCHIVADA;
+    const saved = await this.repo.save(hr);
+    await this.finalizarDocumentosAsociados(id);
+    return saved;
+  }
+
+  private async finalizarDocumentosAsociados(hojaRutaId: string) {
+    try {
+      await axios.post(`http://localhost:3002/documentos/finalizar-por-hoja/${hojaRutaId}`);
+      this.logger.log(`Documentos finalizados para HR ${hojaRutaId}`);
+    } catch (error) {
+      this.logger.error(`Error finalizando documentos para HR ${hojaRutaId}`, error);
+    }
   }
 
   private async generarCodigo(area: string, anio: number): Promise<string> {

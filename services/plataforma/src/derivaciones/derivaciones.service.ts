@@ -122,6 +122,22 @@ export class DerivacionesService {
     return saved;
   }
 
+  async recibir(id: string): Promise<Derivacion> {
+    const derivacion = await this.findOne(id);
+
+    if (derivacion.estado !== EstadoDerivacion.ENVIADA) {
+      throw new BadRequestException(
+        'Solo se pueden recibir derivaciones en estado ENVIADA',
+      );
+    }
+
+    derivacion.estado = EstadoDerivacion.RECIBIDA;
+    const saved = await this.repo.save(derivacion);
+
+    this.logger.log(`Derivación ${id} confirmada como RECIBIDA`);
+    return saved;
+  }
+
   private async findOne(id: string): Promise<Derivacion> {
     const d = await this.repo.findOne({
       where: { id },

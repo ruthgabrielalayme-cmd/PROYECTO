@@ -41,6 +41,7 @@ export class DocumentosService {
       nombre_archivo,
       estado: EstadoDocumento.BORRADOR,
       creado_por: dto.creado_por,
+      area: dto.area,
     });
 
     const saved = await this.repo.save(doc);
@@ -50,14 +51,38 @@ export class DocumentosService {
 
   // ─── Obtener documentos ────────────────────────────────────────────────
 
-  async findAll(): Promise<Documento[]> {
-    return this.repo.find({ relations: ['tipo_documento'] });
+  async findAll(user: any): Promise<Documento[]> {
+    if (user.rol === 'ADMIN') {
+      return this.repo.find({ relations: ['tipo_documento'] });
+    } else if (user.rol === 'ENCARGADO') {
+      return this.repo.find({
+        where: { area: user.area },
+        relations: ['tipo_documento'],
+      });
+    } else {
+      // FUNCIONARIO
+      return this.repo.find({
+        where: { creado_por: user.sub },
+        relations: ['tipo_documento'],
+      });
+    }
   }
 
   async findOne(id: string): Promise<Documento> {
     const doc = await this.repo.findOne({ where: { id } });
     if (!doc) throw new NotFoundException(`Documento ${id} no encontrado`);
     return doc;
+  }
+
+  async finalizarPorHoja(hojaRutaId: string): Promise<void> {
+    const documentos = await this.repo.find({ where: { hoja_ruta_id: hojaRutaId } });
+    for (const doc of documentos) {
+      if (doc.estado === EstadoDocumento.EN_FLUJO) {
+        doc.estado = EstadoDocumento.FINALIZADO;
+        await this.repo.save(doc);
+        this.logger.log(`Documento ${doc.id} finalizado por cierre de HR ${hojaRutaId}`);
+      }
+    }
   }
 
   // ─── Descargar plantilla ─────────────────────────────────────────────────

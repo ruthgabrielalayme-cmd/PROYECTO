@@ -148,6 +148,21 @@ export class AuthService {
       throw new UnauthorizedException('Token Google no corresponde a esta aplicación');
     }
 
+    // Auditoría de Identidad por Dominio: Solo permitir dominios institucionales
+    if (claims.email) {
+      const allowedDomainsStr = this.config.get<string>('ALLOWED_DOMAINS') || '';
+      const allowedDomains = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+
+      const emailDomain = claims.email.split('@')[1]?.toLowerCase();
+
+      // Si hay una lista configurada y el dominio no está ahí, denegamos
+      if (allowedDomains.length > 0 && emailDomain && !allowedDomains.includes(emailDomain)) {
+        throw new UnauthorizedException(
+          `Acceso denegado. El correo electrónico debe pertenecer a un dominio institucional válido (${allowedDomains.join(', ')}).`,
+        );
+      }
+    }
+
     return {
       sub: claims.sub,
       email: claims.email,

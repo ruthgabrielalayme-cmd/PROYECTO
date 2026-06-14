@@ -21,6 +21,11 @@ export class CreateDocumentoDto {
   /** UUID del usuario que crea el documento (viene del JWT) */
   @IsUUID()
   creado_por!: string;
+
+  /** Área del usuario que crea el documento (viene del JWT o frontend) */
+  @IsString()
+  @IsNotEmpty()
+  area!: string;
 }
 
 export class SubirPdfDto {

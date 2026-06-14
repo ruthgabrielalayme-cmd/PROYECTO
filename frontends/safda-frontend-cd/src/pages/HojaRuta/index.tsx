@@ -80,12 +80,30 @@ export default function HojaRutaPage() {
                       Doc: <span className="font-mono">{d.documento_id.slice(0, 8)}...</span>
                     </p>
                   </div>
-                  <Link
-                    to={`/documentos/${d.documento_id}`}
-                    className="shrink-0 text-xs font-semibold text-primary-600 hover:text-primary-800"
-                  >
-                    Ver doc →
-                  </Link>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <Link
+                      to={`/documentos/${d.documento_id}`}
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-800"
+                    >
+                      Ver doc →
+                    </Link>
+                    {d.estado === 'ENVIADA' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await plataformaService.recibir(d.id);
+                            // Refresh
+                            plataformaService.getHojaRuta(hr.id).then(setHr);
+                          } catch (e) {
+                            alert('No se pudo confirmar la recepción');
+                          }
+                        }}
+                        className="btn-secondary text-[10px] px-2 py-1"
+                      >
+                        Confirmar Recepción
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

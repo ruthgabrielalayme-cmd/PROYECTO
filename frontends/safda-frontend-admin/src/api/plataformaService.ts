@@ -28,6 +28,12 @@ export const plataformaService = {
   rechazar: (id: string, motivo: string) =>
     apiPlataforma.patch<Derivacion>(`/derivaciones/${id}/rechazar`, { motivo }).then((r) => r.data),
 
+  cerrarHoja: (id: string) =>
+    apiPlataforma.patch<HojaRuta>(`/hojas-ruta/${id}/cerrar`).then((r) => r.data),
+
+  archivarHoja: (id: string) =>
+    apiPlataforma.patch<HojaRuta>(`/hojas-ruta/${id}/archivar`).then((r) => r.data),
+
   // Bandejas
   getBandeja: (usuarioId: string, tipo?: TipoBandeja) =>
     apiPlataforma

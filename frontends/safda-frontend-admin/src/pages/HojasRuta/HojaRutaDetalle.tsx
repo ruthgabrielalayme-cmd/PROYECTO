@@ -51,11 +51,45 @@ export default function HojaRutaDetalle() {
         title={`HR: ${hr.codigo}`}
         subtitle={`Área ${hr.area_origen} · Creada el ${format(new Date(hr.created_at), "dd 'de' MMMM yyyy", { locale: es })}`}
         action={
-          <button onClick={() => navigate('/hojas-ruta')} className="btn-secondary">← Volver</button>
+          <div className="flex gap-2">
+            <button onClick={() => navigate('/hojas-ruta')} className="btn-secondary">← Volver</button>
+            {hr.estado !== 'CERRADA' && hr.estado !== 'ARCHIVADA' && (
+              <>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Desea cerrar la hoja de ruta? Esto finalizará los documentos asociados.')) return;
+                    try {
+                      await plataformaService.cerrarHoja(hr.id);
+                      plataformaService.getHojaRuta(hr.id).then(setHr);
+                    } catch (e) {
+                      alert('Error al cerrar la hoja de ruta');
+                    }
+                  }}
+                  className="btn-primary"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Desea archivar la hoja de ruta? Esto finalizará los documentos asociados.')) return;
+                    try {
+                      await plataformaService.archivarHoja(hr.id);
+                      plataformaService.getHojaRuta(hr.id).then(setHr);
+                    } catch (e) {
+                      alert('Error al archivar la hoja de ruta');
+                    }
+                  }}
+                  className="btn-primary bg-slate-600 hover:bg-slate-700"
+                >
+                  Archivar
+                </button>
+              </>
+            )}
+          </div>
         }
       >
         {/* Estado general */}
-        <div className="mb-6 flex flex-wrap gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <span className={`badge text-sm ${estadoColor[hr.estado]}`}>{hr.estado.replace('_', ' ')}</span>
           <span className="badge bg-slate-100 text-slate-600 text-sm">
             {hr.derivaciones?.length ?? 0} derivaciones

@@ -141,11 +141,11 @@ export function Alert({ type, message }: { type: 'error' | 'success' | 'info'; m
 
 // ─── Badges ───────────────────────────────────────────────────────────────
 const estadoDoc: Record<EstadoDocumento, string> = {
-  BORRADOR: 'bg-slate-100 text-slate-600', PENDIENTE_SUBIDA: 'bg-amber-100 text-amber-700',
-  PDF_SUBIDO: 'bg-blue-100 text-blue-700', EN_FLUJO: 'bg-green-100 text-green-700',
+  BORRADOR: 'bg-slate-100 text-slate-600',
+  PDF_SUBIDO: 'bg-blue-100 text-blue-700', EN_FLUJO: 'bg-green-100 text-green-700', FINALIZADO: 'bg-slate-200 text-slate-800'
 }
 const estadoDocLabel: Record<EstadoDocumento, string> = {
-  BORRADOR: 'Borrador', PENDIENTE_SUBIDA: 'Pend. subida', PDF_SUBIDO: 'PDF subido', EN_FLUJO: 'En flujo',
+  BORRADOR: 'Borrador', PDF_SUBIDO: 'PDF subido', EN_FLUJO: 'En flujo', FINALIZADO: 'Finalizado'
 }
 export function BadgeEstadoDoc({ estado }: { estado: EstadoDocumento }) {
   return <span className={`badge ${estadoDoc[estado]}`}>{estadoDocLabel[estado]}</span>

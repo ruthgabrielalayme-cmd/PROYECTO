@@ -28,6 +28,9 @@ export const plataformaService = {
   rechazar: (id: string, motivo: string) =>
     apiPlataforma.patch<Derivacion>(`/derivaciones/${id}/rechazar`, { motivo }).then((r) => r.data),
 
+  recibir: (id: string) =>
+    apiPlataforma.patch<Derivacion>(`/derivaciones/${id}/recibir`).then((r) => r.data),
+
   // Bandejas
   getBandeja: (usuarioId: string, tipo?: TipoBandeja) =>
     apiPlataforma

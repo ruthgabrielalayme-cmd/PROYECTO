@@ -1,8 +1,6 @@
-# SAFDA — Sistema de Administración y Flujo Documental Automatizado
+# SAFDA — Sistema de Gestión Documental
 
-Sistema de gestión documental institucional construido con arquitectura de microservicios.
-Permite a funcionarios públicos crear, derivar y tramitar documentos de forma digital,
-con trazabilidad completa y autenticación federada.
+SAFDA es un sistema integral de gestión documental desarrollado con una arquitectura de microservicios en **NestJS**. Está diseñado para digitalizar, administrar, generar CITEs, controlar derivaciones y realizar trazabilidad completa de documentos en instituciones públicas y privadas.
 
 ---
 
@@ -462,3 +460,13 @@ http://localhost:3003   → MS Plataforma
 GET    http://localhost:3001/usuarios
 GET    http://localhost:3001/usuarios/:id
 PATCH  http://localhost:3001/usuarios/:id
+
+## Endpoints de Plataforma (Flujo Documental)
+
+GET    http://localhost:3003/correlativos/generar-site   → Genera y retorna un CITE único consecutivo para una área y año específico. Se debe llamar a este endpoint antes de subir un PDF definitivo.
+
+## Filtros en Listados
+Los listados de documentos (`GET /documentos`) y hojas de ruta (`GET /hojas-ruta`) aplican filtros automáticos basados en el rol del usuario autenticado (extraído del JWT interno):
+- **ADMIN:** Tiene visibilidad completa de todos los documentos y hojas de ruta en el sistema.
+- **ENCARGADO:** Puede ver todos los documentos y hojas de ruta cuyo origen/creación corresponda al área a la que está asignado.
+- **FUNCIONARIO:** Solo puede visualizar los documentos y hojas de ruta que él mismo haya creado (filtrados por su UUID).

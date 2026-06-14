@@ -55,6 +55,7 @@ export default function NuevoDocumento() {
         tipo_documento_id: tipoId,
         hoja_ruta_id: finalHojaId || undefined,
         creado_por: perfil.id,
+        area: perfil.area || areaOrigen,
       })
       navigate(`/documentos/${doc.id}`)
     } catch {

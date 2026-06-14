@@ -52,7 +52,7 @@ Lista explícita de todos los supuestos asumidos en el diseño e implementación
 - El código de `HojaRuta` se genera con un contador simple basado en `COUNT`. En producción se recomienda usar la misma lógica transaccional de `CorrelativoSite`.
 
 ## G.11 Generación de sites desde plataforma
-- El `site` es generado por `svc_plataforma` (CorrelativosService) y pasado como parámetro al endpoint `POST /documentos/:id/subir-pdf` de `svc_documentos`.
+- El `site` es generado por `svc_plataforma` (CorrelativosService) utilizando el endpoint `GET /correlativos/generar-site` y pasado como parámetro al endpoint `POST /documentos/:id/subir-pdf` de `svc_documentos`.
 - El frontend orquesta esta llamada: primero llama a plataforma para obtener el site, luego llama a documentos para subir el PDF.
 
 ## G.12 Runtime y versión de Node.js

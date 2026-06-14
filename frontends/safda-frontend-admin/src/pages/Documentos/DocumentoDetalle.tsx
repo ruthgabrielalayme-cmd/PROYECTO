@@ -36,7 +36,19 @@ export default function DocumentoDetalle() {
         title="Detalle del Documento"
         subtitle={doc.nombre_archivo}
         action={
-          <button onClick={() => navigate('/documentos')} className="btn-secondary">← Volver</button>
+          <div className="flex gap-2">
+            <button onClick={() => navigate('/documentos')} className="btn-secondary">← Volver</button>
+            {(doc.estado === 'PDF_SUBIDO' || doc.estado === 'EN_FLUJO' || doc.estado === 'FINALIZADO') && (
+              <a
+                href={`http://localhost:3002/documentos/${id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary bg-indigo-600 hover:bg-indigo-700"
+              >
+                Ver PDF
+              </a>
+            )}
+          </div>
         }
       >
         <div className="grid gap-6 lg:grid-cols-2">

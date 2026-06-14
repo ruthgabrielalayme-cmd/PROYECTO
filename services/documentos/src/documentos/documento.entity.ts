@@ -11,9 +11,9 @@ import { TipoDocumento } from '../tipos-documento/tipo-documento.entity';
 
 export enum EstadoDocumento {
   BORRADOR = 'BORRADOR',
-  PENDIENTE_SUBIDA = 'PENDIENTE_SUBIDA',
   PDF_SUBIDO = 'PDF_SUBIDO',
   EN_FLUJO = 'EN_FLUJO',
+  FINALIZADO = 'FINALIZADO',
 }
 
 @Entity('documentos')
@@ -56,6 +56,10 @@ export class Documento {
   /** ID del usuario que creó el documento (referencia sin FK cross-service) */
   @Column({ type: 'varchar', length: 36 })
   creado_por!: string;
+
+  /** Área del usuario que creó el documento */
+  @Column({ type: 'varchar', length: 50 })
+  area!: string;
 
   @CreateDateColumn()
   created_at!: Date;

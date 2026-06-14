@@ -10,9 +10,10 @@ import {
   Res,
   BadRequestException,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DocumentosService } from './documentos.service';
@@ -54,8 +55,8 @@ export class DocumentosController {
    * Retorna todos los documentos.
    */
   @Get()
-  findAll() {
-    return this.documentosService.findAll();
+  findAll(@Req() req: Request) {
+    return this.documentosService.findAll(req.user as any);
   }
 
   /**
@@ -96,5 +97,38 @@ export class DocumentosController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.documentosService.findOne(id);
+  }
+
+  /**
+   * PATCH /documentos/finalizar-por-hoja/:hoja_ruta_id
+   * Cambia a FINALIZADO los documentos asociados a una HR cerrada.
+   */
+  @Post('finalizar-por-hoja/:hoja_ruta_id')
+  finalizarPorHoja(@Param('hoja_ruta_id', ParseUUIDPipe) hojaRutaId: string) {
+    return this.documentosService.finalizarPorHoja(hojaRutaId);
+  }
+
+  /**
+   * GET /documentos/:id/pdf
+   * Retorna el archivo PDF definitivo de un documento.
+   */
+  @Get(':id/pdf')
+  async descargarPdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const doc = await this.documentosService.findOne(id);
+    if (!doc.archivo_path) {
+      throw new BadRequestException('El documento no tiene un PDF asociado');
+    }
+
+    const absolutePath = path.resolve(doc.archivo_path);
+    if (!fs.existsSync(absolutePath)) {
+      throw new BadRequestException('Archivo PDF no encontrado en el servidor');
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${doc.nombre_archivo}"`);
+    res.sendFile(absolutePath);
   }
 }

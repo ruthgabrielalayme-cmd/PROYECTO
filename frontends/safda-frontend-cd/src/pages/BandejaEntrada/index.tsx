@@ -70,6 +70,7 @@ export default function BandejaEntrada() {
                       >
                         Ver hoja →
                       </Link>
+                      {/* TODO: Add Receive button when state matches but since we only have HojaRuta info here we can show it globally inside HojaRuta or inside its Derivaciones context */}
                     </td>
                   </tr>
                 ))}
