@@ -55,31 +55,35 @@ export class HojasRutaService {
     return hr;
   }
 
-  async cerrar(id: string): Promise<HojaRuta> {
+  async cerrar(id: string, token?: string): Promise<HojaRuta> {
     const hr = await this.findOne(id);
     if (hr.estado === EstadoHojaRuta.CERRADA || hr.estado === EstadoHojaRuta.ARCHIVADA) {
       throw new BadRequestException('La hoja de ruta ya está cerrada o archivada');
     }
     hr.estado = EstadoHojaRuta.CERRADA;
     const saved = await this.repo.save(hr);
-    await this.finalizarDocumentosAsociados(id);
+    await this.finalizarDocumentosAsociados(id, token);
     return saved;
   }
 
-  async archivar(id: string): Promise<HojaRuta> {
+  async archivar(id: string, token?: string): Promise<HojaRuta> {
     const hr = await this.findOne(id);
     if (hr.estado === EstadoHojaRuta.ARCHIVADA) {
       throw new BadRequestException('La hoja de ruta ya está archivada');
     }
     hr.estado = EstadoHojaRuta.ARCHIVADA;
     const saved = await this.repo.save(hr);
-    await this.finalizarDocumentosAsociados(id);
+    await this.finalizarDocumentosAsociados(id, token);
     return saved;
   }
 
-  private async finalizarDocumentosAsociados(hojaRutaId: string) {
+  private async finalizarDocumentosAsociados(hojaRutaId: string, token?: string) {
     try {
-      await axios.post(`http://localhost:3002/documentos/finalizar-por-hoja/${hojaRutaId}`);
+      await axios.post(
+        `http://localhost:3002/documentos/finalizar-por-hoja/${hojaRutaId}`,
+        {},
+        { headers: token ? { Authorization: token } : {} }
+      );
       this.logger.log(`Documentos finalizados para HR ${hojaRutaId}`);
     } catch (error) {
       this.logger.error(`Error finalizando documentos para HR ${hojaRutaId}`, error);

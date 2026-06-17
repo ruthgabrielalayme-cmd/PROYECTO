@@ -39,14 +39,24 @@ export default function DocumentoDetalle() {
           <div className="flex gap-2">
             <button onClick={() => navigate('/documentos')} className="btn-secondary">← Volver</button>
             {(doc.estado === 'PDF_SUBIDO' || doc.estado === 'EN_FLUJO' || doc.estado === 'FINALIZADO') && (
-              <a
-                href={`http://localhost:3002/documentos/${id}/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={async () => {
+                  try {
+                    const blob = await documentosService.descargarPdf(id!)
+                    const url  = URL.createObjectURL(blob)
+                    const a    = document.createElement('a')
+                    a.href     = url
+                    a.download = `${doc.site_generado ? doc.site_generado.replace(/\//g, '-') : 'Documento'}.pdf`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch {
+                    alert('Error al descargar el PDF')
+                  }
+                }}
                 className="btn-primary bg-indigo-600 hover:bg-indigo-700"
               >
                 Ver PDF
-              </a>
+              </button>
             )}
           </div>
         }

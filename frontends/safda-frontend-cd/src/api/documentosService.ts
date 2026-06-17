@@ -27,4 +27,7 @@ export const documentosService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data)
   },
+
+  descargarPdf: (id: string) =>
+    apiDocumentos.get(`/documentos/${id}/pdf`, { responseType: 'blob' }).then((r) => r.data),
 }

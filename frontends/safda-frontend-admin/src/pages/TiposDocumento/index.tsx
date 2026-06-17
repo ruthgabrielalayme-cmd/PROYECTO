@@ -14,7 +14,7 @@ export default function TiposDocumentoPage() {
 
   // Form state
   const [nombre,       setNombre]       = useState('')
-  const [plantillaPath, setPlantillaPath] = useState('')
+  const [file,         setFile]         = useState<File | null>(null)
   const [submitting,   setSubmitting]   = useState(false)
 
   const cargar = () => {
@@ -33,16 +33,16 @@ export default function TiposDocumentoPage() {
     setSubmitting(true)
     setError(null)
     try {
-      // Llamamos directamente a apiDocumentos ya que documentosService
-      // no expone createTipo — lo agregamos inline aquí
-      const { apiDocumentos } = await import('../../api/client')
-      await apiDocumentos.post('/tipos-documento', {
-        nombre: nombre.trim().toUpperCase(),
-        plantilla_path: plantillaPath.trim() || undefined,
-      })
+      const form = new FormData()
+      form.append('nombre', nombre.trim().toUpperCase())
+      if (file) {
+        form.append('file', file)
+      }
+
+      await documentosService.createTipo(form)
       setSuccess(`Tipo "${nombre.toUpperCase()}" creado correctamente.`)
       setNombre('')
-      setPlantillaPath('')
+      setFile(null)
       setShowForm(false)
       cargar()
       setTimeout(() => setSuccess(null), 4000)
@@ -89,13 +89,12 @@ export default function TiposDocumentoPage() {
                 />
               </div>
               <div>
-                <label className="label">Ruta de plantilla (opcional)</label>
+                <label className="label">Archivo de plantilla (.docx)</label>
                 <input
-                  type="text"
-                  value={plantillaPath}
-                  onChange={(e) => setPlantillaPath(e.target.value)}
-                  placeholder="./plantillas/MEMORANDUM.docx"
-                  className="input font-mono text-xs"
+                  type="file"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="input text-xs"
                 />
               </div>
             </div>

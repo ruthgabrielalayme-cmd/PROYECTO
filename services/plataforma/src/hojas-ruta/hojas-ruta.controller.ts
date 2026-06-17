@@ -39,14 +39,16 @@ export class HojasRutaController {
   @Patch(':id/cerrar')
   @UseGuards(RolesGuard)
   @Roles('ENCARGADO', 'ADMIN')
-  cerrar(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.cerrar(id);
+  cerrar(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const token = req.headers.authorization;
+    return this.service.cerrar(id, token);
   }
 
   @Patch(':id/archivar')
   @UseGuards(RolesGuard)
   @Roles('ENCARGADO', 'ADMIN')
-  archivar(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.archivar(id);
+  archivar(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const token = req.headers.authorization;
+    return this.service.archivar(id, token);
   }
 }

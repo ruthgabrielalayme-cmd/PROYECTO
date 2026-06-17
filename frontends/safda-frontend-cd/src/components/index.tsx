@@ -11,7 +11,7 @@ export function Navbar() {
   const links = [
     { to: '/bandeja-entrada', label: 'Bandeja Entrada' },
     { to: '/bandeja-salida', label: 'Bandeja Salida' },
-    { to: '/documentos/nuevo', label: 'Nuevo Documento' },
+    { to: '/documentos', label: 'Documentos' },
     { to: '/hojas-ruta', label: 'Hojas de Ruta' },
   ]
 

@@ -6,6 +6,11 @@ export const documentosService = {
   getTipos: () =>
     apiDocumentos.get<TipoDocumento[]>('/tipos-documento').then((r) => r.data),
 
+  createTipo: (data: FormData) =>
+    apiDocumentos.post<TipoDocumento>('/tipos-documento', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data),
+
   descargarPlantilla: (tipoId: string) =>
     apiDocumentos.get(`/documentos/plantilla/${tipoId}`, { responseType: 'blob' }).then((r) => r.data),
 
@@ -27,4 +32,7 @@ export const documentosService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data)
   },
+
+  descargarPdf: (id: string) =>
+    apiDocumentos.get(`/documentos/${id}/pdf`, { responseType: 'blob' }).then((r) => r.data),
 }

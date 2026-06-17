@@ -52,6 +52,7 @@ export interface Documento {
   qr_id: string | null;
   site_generado: string | null;
   estado: EstadoDocumento;
+  area: string;
   creado_por: string;
   created_at: string;
   updated_at: string;
