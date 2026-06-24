@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { documentosService } from '../../api/documentosService'
-import { Navbar, PageShell, Spinner, Alert } from '../../components'
+import { AdminLayout, PageShell, Spinner, Alert } from '../../components'
 import type { Documento } from '../../types'
 
 export default function SubirPdf() {
@@ -38,8 +38,9 @@ export default function SubirPdf() {
   }
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell title="Subir PDF Definitivo" subtitle={doc?.nombre_archivo}>
         <div className="mx-auto max-w-xl">
           <form onSubmit={handleSubmit} className="card space-y-6 p-6">
@@ -72,17 +73,19 @@ export default function SubirPdf() {
                 }`}
               >
                 {file ? (
-                  <>
+
+<AdminLayout>
                     <span className="text-2xl">📄</span>
                     <span className="text-sm font-semibold text-primary-700">{file.name}</span>
                     <span className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                  </>
+                  </AdminLayout>
                 ) : (
-                  <>
+
+<AdminLayout>
                     <span className="text-3xl text-slate-300">☁</span>
                     <span className="text-sm font-medium text-slate-600">Hacé clic para seleccionar el PDF</span>
                     <span className="text-xs text-slate-400">Máximo 10 MB</span>
-                  </>
+                  </AdminLayout>
                 )}
               </div>
               <input
@@ -96,13 +99,14 @@ export default function SubirPdf() {
 
             <div className="flex gap-3">
               <button type="submit" disabled={!file || !site || submitting} className="btn-primary">
-                {submitting ? <><Spinner size="sm" /> Subiendo...</> : 'Subir PDF'}
+                {submitting ?
+<AdminLayout><Spinner size="sm" /> Subiendo...</AdminLayout> : 'Subir PDF'}
               </button>
               <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancelar</button>
             </div>
           </form>
         </div>
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

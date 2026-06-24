@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { plataformaService } from '../../api/plataformaService'
-import { Navbar, PageShell, Spinner, EmptyState } from '../../components'
+import { AdminLayout, PageShell, Spinner, EmptyState } from '../../components'
 import type { HojaRuta } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -19,8 +19,9 @@ export default function ListaHojasRuta() {
   }, [])
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell title="Hojas de Ruta" subtitle="Listado de hojas de ruta de tu área">
         {loading && <div className="flex justify-center py-16"><Spinner size="lg" /></div>}
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -62,6 +63,6 @@ export default function ListaHojasRuta() {
           </div>
         )}
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

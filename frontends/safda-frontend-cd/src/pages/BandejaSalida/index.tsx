@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { plataformaService } from '../../api/plataformaService'
-import { Navbar, PageShell, Spinner, EmptyState, BadgeTipoBandeja } from '../../components'
+import { AdminLayout, PageShell, Spinner, EmptyState, BadgeTipoBandeja } from '../../components'
 import type { Bandeja } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -22,8 +22,9 @@ export default function BandejaSalida() {
   }, [perfil?.id])
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell
         title="Bandeja de Salida"
         subtitle="Documentos derivados y enviados"
@@ -64,6 +65,6 @@ export default function BandejaSalida() {
           </div>
         )}
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

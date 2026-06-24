@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { documentosService } from '../../api/documentosService'
 import { plataformaService } from '../../api/plataformaService'
-import { Navbar, PageShell, Spinner, Alert } from '../../components'
+import { AdminLayout, PageShell, Spinner, Alert } from '../../components'
 import type { TipoDocumento, HojaRuta } from '../../types'
 
 export default function NuevoDocumento() {
@@ -66,8 +66,9 @@ export default function NuevoDocumento() {
   }
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell title="Nuevo Documento" subtitle="Completá los datos para crear un documento">
         <div className="mx-auto max-w-2xl">
           <form onSubmit={handleSubmit} className="card space-y-6 p-6">
@@ -136,7 +137,8 @@ export default function NuevoDocumento() {
 
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={submitting || !tipoId} className="btn-primary">
-                {submitting ? <><Spinner size="sm" /> Creando...</> : 'Crear Documento'}
+                {submitting ?
+<AdminLayout><Spinner size="sm" /> Creando...</AdminLayout> : 'Crear Documento'}
               </button>
               <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
                 Cancelar
@@ -145,6 +147,6 @@ export default function NuevoDocumento() {
           </form>
         </div>
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

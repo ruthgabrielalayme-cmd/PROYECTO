@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { documentosService } from '../../api/documentosService'
-import { Navbar, PageShell, Spinner, BadgeEstadoDoc, Alert } from '../../components'
+import { AdminLayout, PageShell, Spinner, BadgeEstadoDoc, Alert } from '../../components'
 import type { Documento } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -21,12 +21,15 @@ export default function DetalleDocumento() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <><Navbar /><div className="flex justify-center py-24"><Spinner size="lg" /></div></>
-  if (error || !doc) return <><Navbar /><PageShell title="Error"><Alert type="error" message={error ?? 'Documento no encontrado'} /></PageShell></>
+  if (loading) return
+<AdminLayout><div className="flex justify-center py-24"><Spinner size="lg" /></div></AdminLayout>
+  if (error || !doc) return
+<AdminLayout><PageShell title="Error"><Alert type="error" message={error ?? 'Documento no encontrado'} /></PageShell></AdminLayout>
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell
         title={doc.nombre_archivo}
         subtitle={`Creado el ${format(new Date(doc.created_at), "dd 'de' MMMM yyyy", { locale: es })}`}
@@ -110,7 +113,7 @@ export default function DetalleDocumento() {
           )}
         </div>
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }
 

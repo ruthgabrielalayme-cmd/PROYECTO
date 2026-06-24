@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import type { EstadoDocumento, EstadoDerivacion } from '../types'
+import type { EstadoDocumento, EstadoDerivacion, TipoBandeja } from '../types'
 
 // ─── Sidebar Layout ───────────────────────────────────────────────────────
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -8,12 +8,29 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const loc = useLocation()
 
-  const navItems = [
-    { to: '/dashboard',      icon: '⊞', label: 'Dashboard' },
-    { to: '/usuarios',       icon: '👥', label: 'Usuarios' },
-    { to: '/tipos-documento',icon: '📋', label: 'Tipos de Documento' },
-    { to: '/documentos',     icon: '📄', label: 'Documentos' },
-    { to: '/hojas-ruta',     icon: '📂', label: 'Hojas de Ruta' },
+  const navGroups = [
+    {
+      title: 'General',
+      items: [
+        { to: '/dashboard',       icon: '⊞', label: 'Dashboard' },
+      ]
+    },
+    {
+      title: 'Operativo',
+      items: [
+        { to: '/bandeja-entrada', icon: '📥', label: 'Bandeja Entrada' },
+        { to: '/bandeja-salida',  icon: '📤', label: 'Bandeja Salida' },
+        { to: '/documentos',      icon: '📄', label: 'Documentos' },
+        { to: '/hojas-ruta',      icon: '📂', label: 'Hojas de Ruta' },
+      ]
+    },
+    {
+      title: 'Administración',
+      items: [
+        { to: '/usuarios',        icon: '👥', label: 'Usuarios' },
+        { to: '/tipos-documento', icon: '📋', label: 'Tipos de Documento' },
+      ]
+    }
   ]
 
   return (
@@ -27,21 +44,30 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <p className="font-display text-sm font-bold text-slate-900">SAFDA</p>
-            <p className="text-xs text-primary-600 font-semibold">Panel Admin</p>
+            <p className="text-xs text-primary-600 font-semibold">Sector Privado</p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`sidebar-link ${loc.pathname.startsWith(item.to) ? 'active' : ''}`}
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </Link>
+          {navGroups.map((group, i) => (
+            <div key={i} className="mb-6">
+              <p className="px-3 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                {group.title}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`sidebar-link ${loc.pathname.startsWith(item.to) ? 'active' : ''}`}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
@@ -167,4 +193,24 @@ const estadoUsuario: Record<string, string> = {
 }
 export function BadgeEstadoUsuario({ estado }: { estado: string }) {
   return <span className={`badge ${estadoUsuario[estado] ?? 'bg-slate-100 text-slate-600'}`}>{estado.replace('_', ' ')}</span>
+}
+
+const estadoDer: Record<EstadoDerivacion, string> = {
+  PENDIENTE_APROBACION: 'bg-amber-100 text-amber-700',
+  APROBADA:             'bg-blue-100 text-blue-700',
+  RECHAZADA:            'bg-red-100 text-red-700',
+  ENVIADA:              'bg-indigo-100 text-indigo-700',
+  RECIBIDA:             'bg-green-100 text-green-700',
+}
+export function BadgeEstadoDer({ estado }: { estado: EstadoDerivacion }) {
+  return <span className={`badge ${estadoDer[estado]}`}>{estado.replace('_', ' ')}</span>
+}
+
+const tipoBandeja: Record<TipoBandeja, string> = {
+  ENTRANTE:             'bg-green-100 text-green-700',
+  SALIENTE:             'bg-blue-100 text-blue-700',
+  PENDIENTE_APROBACION: 'bg-amber-100 text-amber-700',
+}
+export function BadgeTipoBandeja({ tipo }: { tipo: TipoBandeja }) {
+  return <span className={`badge ${tipoBandeja[tipo]}`}>{tipo.replace('_', ' ')}</span>
 }

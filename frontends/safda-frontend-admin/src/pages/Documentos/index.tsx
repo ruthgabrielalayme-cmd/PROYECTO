@@ -25,7 +25,7 @@ export default function DocumentosPage() {
     const matchTexto = !texto ||
       d.tipo_documento.nombre.toLowerCase().includes(texto) ||
       d.site_generado?.toLowerCase().includes(texto) ||
-      d.nombre_archivo.toLowerCase().includes(texto)
+      d.nombre_archivo?.toLowerCase().includes(texto)
     const matchEstado = !filtroEstado || d.estado === filtroEstado
     return matchTexto && matchEstado
   })
@@ -86,7 +86,7 @@ export default function DocumentosPage() {
                     <td className="px-4 py-3">
                       {d.site_generado
                         ? <span className="font-mono font-bold text-primary-700">{d.site_generado}</span>
-                        : <span className="truncate text-xs text-slate-400">{d.nombre_archivo.slice(0, 30)}...</span>}
+                        : <span className="truncate text-xs text-slate-400">{d.nombre_archivo ?? "".slice(0, 30)}...</span>}
                     </td>
                     <td className="px-4 py-3"><BadgeEstadoDoc estado={d.estado} /></td>
                     <td className="px-4 py-3">

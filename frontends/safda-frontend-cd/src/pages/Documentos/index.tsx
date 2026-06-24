@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { documentosService } from '../../api/documentosService'
-import { Navbar, PageShell, Spinner, EmptyState, BadgeEstadoDoc } from '../../components'
+import { AdminLayout, PageShell, Spinner, EmptyState, BadgeEstadoDoc } from '../../components'
 import type { Documento } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -19,8 +19,9 @@ export default function ListaDocumentos() {
   }, [])
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell
         title="Mis Documentos"
         subtitle="Documentos de tu área / creados por vos"
@@ -72,6 +73,6 @@ export default function ListaDocumentos() {
           </div>
         )}
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

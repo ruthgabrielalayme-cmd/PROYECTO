@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { plataformaService } from '../../api/plataformaService'
-import { Navbar, PageShell, Spinner, BadgeEstadoDer, Alert } from '../../components'
+import { AdminLayout, PageShell, Spinner, BadgeEstadoDer, Alert } from '../../components'
 import type { HojaRuta } from '../../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -20,8 +20,10 @@ export default function HojaRutaPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <><Navbar /><div className="flex justify-center py-24"><Spinner size="lg" /></div></>
-  if (error || !hr) return <><Navbar /><PageShell title="Error"><Alert type="error" message={error ?? 'No encontrada'} /></PageShell></>
+  if (loading) return
+<AdminLayout><div className="flex justify-center py-24"><Spinner size="lg" /></div></AdminLayout>
+  if (error || !hr) return
+<AdminLayout><PageShell title="Error"><Alert type="error" message={error ?? 'No encontrada'} /></PageShell></AdminLayout>
 
   const estadoColor: Record<string, string> = {
     ABIERTA:   'bg-green-100 text-green-700',
@@ -31,8 +33,9 @@ export default function HojaRutaPage() {
   }
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell
         title={`Hoja de Ruta: ${hr.codigo}`}
         subtitle={`Área: ${hr.area_origen} · Creada el ${format(new Date(hr.created_at), "dd 'de' MMMM yyyy", { locale: es })}`}
@@ -110,6 +113,6 @@ export default function HojaRutaPage() {
           )}
         </div>
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }

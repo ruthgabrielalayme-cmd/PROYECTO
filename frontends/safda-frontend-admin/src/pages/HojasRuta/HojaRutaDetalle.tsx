@@ -148,11 +148,11 @@ export default function HojaRutaDetalle() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                       <span>
                         <span className="font-medium text-slate-700">De:</span>{' '}
-                        <span className="font-mono">{d.remitente_id.slice(0, 8)}...</span>
+                        <span className="font-mono">{d.remitente_id ?? "".slice(0, 8)}...</span>
                       </span>
                       <span>
                         <span className="font-medium text-slate-700">Para:</span>{' '}
-                        <span className="font-mono">{d.destinatario_id.slice(0, 8)}...</span>
+                        <span className="font-mono">{d.destinatario_id ?? "".slice(0, 8)}...</span>
                       </span>
                     </div>
 

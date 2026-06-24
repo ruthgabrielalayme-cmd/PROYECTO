@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { documentosService } from '../../api/documentosService'
 import { plataformaService } from '../../api/plataformaService'
 import { usuariosService } from '../../api/usuariosService'
-import { Navbar, PageShell, Spinner, Alert } from '../../components'
+import { AdminLayout, PageShell, Spinner, Alert } from '../../components'
 import type { Documento, Usuario, HojaRuta } from '../../types'
 
 export default function DerivarDocumento() {
@@ -56,8 +56,9 @@ export default function DerivarDocumento() {
   const mismaArea = destinatario?.area === perfil?.area
 
   return (
-    <>
-      <Navbar />
+
+<AdminLayout>
+
       <PageShell title="Derivar Documento" subtitle={doc?.nombre_archivo}>
         <div className="mx-auto max-w-xl">
           <form onSubmit={handleSubmit} className="card space-y-6 p-6">
@@ -130,13 +131,14 @@ export default function DerivarDocumento() {
 
             <div className="flex gap-3">
               <button type="submit" disabled={!hojaId || !destinatarioId || submitting} className="btn-primary">
-                {submitting ? <><Spinner size="sm" /> Derivando...</> : 'Derivar Documento'}
+                {submitting ?
+<AdminLayout><Spinner size="sm" /> Derivando...</AdminLayout> : 'Derivar Documento'}
               </button>
               <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancelar</button>
             </div>
           </form>
         </div>
       </PageShell>
-    </>
+    </AdminLayout>
   )
 }
