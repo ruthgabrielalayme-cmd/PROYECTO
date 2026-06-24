@@ -130,12 +130,31 @@ export default function HojaRutaDetalle() {
                   </div>
 
                   {/* Acciones */}
-                  <Link
-                    to={`/documentos/${d.documento_id}`}
-                    className="shrink-0 text-xs font-semibold text-primary-600 hover:text-primary-800"
-                  >
-                    Ver doc →
-                  </Link>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <Link
+                      to={`/documentos/${d.documento_id}`}
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-800"
+                    >
+                      Ver doc →
+                    </Link>
+                    {d.estado === 'ENVIADA' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await plataformaService.recibirDerivacion(d.id);
+                            // Recargar HR para reflejar estado
+                            const updatedHr = await plataformaService.getHojaRuta(id!);
+                            setHr(updatedHr);
+                          } catch (e) {
+                            alert('Error al recibir derivación');
+                          }
+                        }}
+                        className="text-xs font-semibold px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                      >
+                        ✓ Recibir
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -37,4 +37,9 @@ export class DerivacionesController {
   ) {
     return this.service.rechazar(id, dto.motivo);
   }
+
+  @Patch(':id/recibir')
+  recibir(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.recibir(id);
+  }
 }

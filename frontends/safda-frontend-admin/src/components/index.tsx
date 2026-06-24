@@ -163,11 +163,11 @@ export function Alert({ type, message }: { type: 'error' | 'success' | 'info'; m
 
 // ─── Badges ───────────────────────────────────────────────────────────────
 const estadoDoc: Record<EstadoDocumento, string> = {
-  BORRADOR: 'bg-slate-100 text-slate-600', PENDIENTE_SUBIDA: 'bg-amber-100 text-amber-700',
+  BORRADOR: 'bg-slate-100 text-slate-600', FINALIZADO: 'bg-purple-100 text-purple-700',
   PDF_SUBIDO: 'bg-blue-100 text-blue-700', EN_FLUJO: 'bg-green-100 text-green-700',
 }
 const estadoDocLabel: Record<EstadoDocumento, string> = {
-  BORRADOR: 'Borrador', PENDIENTE_SUBIDA: 'Pend. subida', PDF_SUBIDO: 'PDF subido', EN_FLUJO: 'En flujo',
+  BORRADOR: 'Borrador', FINALIZADO: 'Finalizado', PDF_SUBIDO: 'PDF subido', EN_FLUJO: 'En flujo',
 }
 export function BadgeEstadoDoc({ estado }: { estado: EstadoDocumento }) {
   return <span className={`badge ${estadoDoc[estado]}`}>{estadoDocLabel[estado]}</span>

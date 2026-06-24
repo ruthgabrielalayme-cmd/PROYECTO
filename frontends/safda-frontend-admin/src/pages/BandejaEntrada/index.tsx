@@ -57,9 +57,22 @@ export default function BandejaEntrada() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link to={`/hojas-ruta/${b.hoja_ruta.id}`} className="text-xs font-semibold text-primary-600 hover:text-primary-800">
-                        Ver hoja →
-                      </Link>
+                      <div className="flex flex-col gap-1">
+                        <Link to={`/hojas-ruta/${b.hoja_ruta.id}`} className="text-xs font-semibold text-primary-600 hover:text-primary-800">
+                          Ver hoja →
+                        </Link>
+                        {b.tipo === 'ENTRANTE' && (
+                          <button
+                            onClick={async () => {
+                              // Suponemos que podemos buscar la derivación a recibir en base a la hoja de ruta en este context.
+                              // Nota: La forma más limpia sería que el backend devolviera el id de derivación en la bandeja,
+                              // pero por simplicidad de UI, si un usuario necesita recibir, debe hacerlo desde el detalle de la hoja de ruta
+                              // o derivación.
+                            }}
+                            className="hidden"
+                          />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
