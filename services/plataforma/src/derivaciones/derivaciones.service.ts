@@ -14,7 +14,7 @@ import { CreateDerivacionDto } from './derivacion.dto';
 import { TipoBandeja } from '../bandejas/bandeja.entity';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { EstadoHojaRuta } from 'src/hojas-ruta/hoja-ruta.entity';
+import { EstadoHojaRuta } from '../hojas-ruta/hoja-ruta.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -179,6 +179,23 @@ export class DerivacionesService {
     });
 
     this.logger.log(`Derivación ${id} rechazada`);
+    return saved;
+  }
+
+  // ─── Recibir derivación ──────────────────────────────────────────────────
+  async recibir(id: string): Promise<Derivacion> {
+    const derivacion = await this.findOne(id);
+
+    if (derivacion.estado !== EstadoDerivacion.ENVIADA) {
+      throw new BadRequestException(
+        'Solo se pueden recibir derivaciones en estado ENVIADA',
+      );
+    }
+
+    derivacion.estado = EstadoDerivacion.RECIBIDA;
+    const saved = await this.repo.save(derivacion);
+
+    this.logger.log(`Derivación ${id} recibida`);
     return saved;
   }
 

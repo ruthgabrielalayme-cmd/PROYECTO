@@ -1,8 +1,8 @@
 # SAFDA — Sistema de Administración y Flujo Documental Automatizado
 
-Sistema de gestión documental institucional construido con arquitectura de microservicios.
-Permite a funcionarios públicos crear, derivar y tramitar documentos de forma digital,
-con trazabilidad completa y autenticación federada.
+SAFDA es un **sistema integral de gestión documental**, no solo un sistema de pasarela o de derivación de documentos. Abarca todo el ciclo de vida documental institucional, construido con una arquitectura de microservicios.
+Permite a funcionarios públicos crear desde plantillas, generar correlativos automáticamente, derivar y tramitar documentos de forma digital en toda la institución,
+con trazabilidad completa, control de estados (desde su borrador hasta su finalización) y autenticación federada (Ciudadanía Digital y Google).
 
 ---
 
@@ -454,11 +454,32 @@ cd services/plataforma && npm install && npm run start:dev
 Ver sección **G** al final del documento de arquitectura o el archivo `SUPUESTOS.md`.
 
 
-## rutas
-http://localhost:3001   → MS Usuarios
-http://localhost:3002   → MS Documentos
-http://localhost:3003   → MS Plataforma
+## Endpoints del Backend — SAFDA
 
-GET    http://localhost:3001/usuarios
-GET    http://localhost:3001/usuarios/:id
-PATCH  http://localhost:3001/usuarios/:id
+| Microservicio | Método | Endpoint | Requiere JWT | Rol mínimo | Descripción |
+|---|---|---|---|---|---|
+| **svc_usuarios :3001** | | | | | |
+| svc_usuarios | POST | `/auth/login` | No | Público | Login federado con CD o Google — retorna JWT interno |
+| svc_usuarios | GET | `/usuarios` | Sí | ADMIN | Listar todos los usuarios del sistema |
+| svc_usuarios | GET | `/usuarios/:id` | Sí | Cualquiera | Obtener datos de un usuario por UUID |
+| svc_usuarios | PATCH | `/usuarios/:id` | Sí | ADMIN | Actualizar área, rol y estado de un usuario |
+| **svc_documentos :3002** | | | | | |
+| svc_documentos | POST | `/tipos-documento` | Sí | ADMIN | Crear nuevo tipo de documento |
+| svc_documentos | GET | `/tipos-documento` | Sí | Cualquiera | Listar todos los tipos de documento |
+| svc_documentos | GET | `/tipos-documento/:id` | Sí | Cualquiera | Obtener tipo de documento por ID |
+| svc_documentos | GET | `/documentos/plantilla/:tipo_id` | Sí | Cualquiera | Descargar plantilla .docx del tipo de documento |
+| svc_documentos | POST | `/documentos` | Sí | Cualquiera | Crear documento en estado BORRADOR |
+| svc_documentos | GET | `/documentos` | Sí | Cualquiera | Listar documentos (el listado se filtra automáticamente por área/rol del usuario) |
+| svc_documentos | GET | `/documentos/:id` | Sí | Cualquiera | Obtener metadatos de un documento |
+| svc_documentos | POST | `/documentos/:id/subir-pdf` | Sí | Cualquiera | Subir PDF — inserta CITE y QR automáticamente |
+| **svc_plataforma :3003** | | | | | |
+| svc_plataforma | POST | `/hojas-ruta` | Sí | Cualquiera | Crear hoja de ruta con código correlativo |
+| svc_plataforma | GET | `/hojas-ruta` | Sí | Cualquiera | Listar hojas de ruta (el listado se filtra automáticamente por área/rol del usuario) |
+| svc_plataforma | GET | `/hojas-ruta/:id` | Sí | Cualquiera | Obtener hoja de ruta con derivaciones |
+| svc_plataforma | POST | `/derivaciones` | Sí | Cualquiera | Derivar documento (interna o externa) |
+| svc_plataforma | PATCH | `/derivaciones/:id/aprobar` | Sí | ENCARGADO | Aprobar derivación externa — cambia a ENVIADA |
+| svc_plataforma | PATCH | `/derivaciones/:id/rechazar` | Sí | ENCARGADO | Rechazar derivación — requiere campo motivo |
+| svc_plataforma | PATCH | `/derivaciones/:id/recibir` | Sí | Cualquiera | Recibir derivación — cambia estado a RECIBIDA |
+| svc_plataforma | GET | `/bandejas/:usuario_id` | Sí | Cualquiera | Obtener bandeja filtrada por ?tipo=ENTRANTE\|SALIENTE\|PENDIENTE_APROBACION |
+| svc_plataforma | GET | `/trazabilidad/:qrId` | No | Público | Consulta pública de trazabilidad por código QR |
+| svc_plataforma | GET | `/correlativos/generar-site` | Sí | Cualquiera | Obtener CITE automático antes de subir el PDF |

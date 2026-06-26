@@ -3,18 +3,28 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EstadoHojaRuta, HojaRuta } from './hoja-ruta.entity';
 import { CreateHojaRutaDto } from './hoja-ruta.dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class HojasRutaService {
   save(hr: HojaRuta) {
-    throw new Error('Method not implemented.');
+    return this.repo.save(hr);
   }
   private readonly logger = new Logger(HojasRutaService.name);
+  private readonly documentosUrl: string;
+  private readonly internalToken: string;
 
   constructor(
     @InjectRepository(HojaRuta)
     private readonly repo: Repository<HojaRuta>,
-  ) {}
+    private readonly httpService: HttpService,
+    private readonly config: ConfigService,
+  ) {
+    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL') || this.config.get<string>('DOCUMENTOS_SERVICE_URL')!;
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;
+  }
 
   async updateEstado(id: string, nuevoEstado: EstadoHojaRuta): Promise<HojaRuta> {
   const hr = await this.findOne(id);
@@ -72,11 +82,46 @@ export class HojasRutaService {
 
   async cambiarEstado(id: string, nuevoEstado: EstadoHojaRuta): Promise<HojaRuta> {
   const hr = await this.findOne(id);
+
+  if (nuevoEstado === EstadoHojaRuta.CERRADA || nuevoEstado === EstadoHojaRuta.ARCHIVADA) {
+    await this.finalizarDocumentos(hr);
+  }
+
   hr.estado = nuevoEstado;
   const updated = await this.repo.save(hr);
   this.logger.log(`HojaRuta ${id} cambió estado a ${nuevoEstado}`);
+
   return updated;
 }
+
+  private async finalizarDocumentos(hr: HojaRuta) {
+    if (!hr.derivaciones || hr.derivaciones.length === 0) return;
+
+    // Extraer los IDs únicos de documentos en las derivaciones
+    const docIds = [...new Set(hr.derivaciones.map(d => d.documento_id))];
+
+    for (const docId of docIds) {
+      try {
+        await firstValueFrom(
+          this.httpService.patch(
+            `${this.documentosUrl}/documentos/${docId}/estado`,
+            { estado: 'FINALIZADO' },
+            {
+              headers: {
+                'X-Internal-Token': this.internalToken,
+              },
+            },
+          ),
+        );
+        this.logger.log(`Documento ${docId} cambiado a FINALIZADO tras cerrar HR ${hr.id}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error al cambiar estado del documento ${docId} a FINALIZADO: ${message}`);
+        // Lanzamos el error para que la actualización de estado falle y no se guarde la Hoja de Ruta
+        throw new Error(`Fallo al finalizar documento ${docId}: ${message}`);
+      }
+    }
+  }
 
   private async generarCodigo(area: string, anio: number): Promise<string> {
     const count = await this.repo.count({

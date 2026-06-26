@@ -199,7 +199,8 @@ export class DocumentosService {
 
 async cambiarEstado(id: string, nuevoEstado: EstadoDocumento): Promise<Documento> {
   const doc = await this.findOne(id);
-  if (doc.estado === EstadoDocumento.EN_FLUJO && nuevoEstado !== EstadoDocumento.EN_FLUJO) {
+
+  if (nuevoEstado !== EstadoDocumento.FINALIZADO && doc.estado === EstadoDocumento.EN_FLUJO && nuevoEstado !== EstadoDocumento.EN_FLUJO) {
     throw new BadRequestException('No se puede cambiar el estado de un documento en flujo');
   }
   if (doc.estado !== EstadoDocumento.PDF_SUBIDO && nuevoEstado === EstadoDocumento.EN_FLUJO) {

@@ -163,6 +163,18 @@ export class AuthService {
 
       const info = await res.json() as GoogleTokenInfo;
 
+      // Validar el dominio del correo
+      const dominiosPermitidosStr = this.config.get<string>('DOMINIOS_PERMITIDOS');
+      if (dominiosPermitidosStr && info.email) {
+        const dominiosPermitidos = dominiosPermitidosStr.split(',').map(d => d.trim().toLowerCase());
+        const emailDomain = info.email.split('@')[1]?.toLowerCase();
+
+        if (!emailDomain || !dominiosPermitidos.includes(emailDomain)) {
+          this.logger.warn(`Intento de login con dominio no permitido: ${emailDomain}`);
+          throw new UnauthorizedException('El correo no pertenece a un dominio corporativo registrado');
+        }
+      }
+
       // Validar que el token fue emitido para nuestra app
       if (clientId && info.aud !== clientId) {
         this.logger.warn(

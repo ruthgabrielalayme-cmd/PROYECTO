@@ -43,6 +43,7 @@ describe('AuthService', () => {
                 CD_CLIENT_ID: 'client_test',
                 JWT_INTERNAL_SECRET: 'test_secret',
                 JWT_INTERNAL_EXPIRES_IN: '8h',
+                DOMINIOS_PERMITIDOS: 'example.com, test.org',
               };
               return map[key];
             }),
@@ -97,6 +98,28 @@ describe('AuthService', () => {
     await expect(authService.loginFederado(dto)).rejects.toThrow(
       UnauthorizedException,
     );
+  });
+
+  it('debería lanzar UnauthorizedException cuando el dominio de Google no está en DOMINIOS_PERMITIDOS', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        iss: 'accounts.google.com',
+        sub: 'google_sub_invalido',
+        email: 'user@unauthorized-domain.com',
+        name: 'Usuario Dominio Invalido',
+      }),
+    });
+
+    const dto: LoginFederadoDto = {
+      token: 'valid_google_token_but_wrong_domain',
+      provider: Provider.GOOGLE,
+    };
+
+    await expect(authService.loginFederado(dto)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(usuariosService.save).not.toHaveBeenCalled();
   });
 
   it('debería denegar el login tras crear un usuario nuevo con estado PENDIENTE_ASIGNACION', async () => {
@@ -210,7 +233,7 @@ describe('AuthService', () => {
       json: async () => ({
         iss: 'accounts.google.com',
         sub: 'google_sub_real_789',
-        email: 'ruthgabrielalayme@gmail.com',
+        email: 'ruthgabrielalayme@example.com',
         name: 'Ruth Gabriela Layme',
         picture: 'https://photo.url',
       }),
@@ -225,7 +248,7 @@ describe('AuthService', () => {
       estado: EstadoUsuario.ACTIVO,
       rol: Rol.ADMIN,
       area: null,
-      correo: 'ruthgabrielalayme@gmail.com',
+      correo: 'ruthgabrielalayme@example.com',
       nombre_completo: 'Ruth Gabriela Layme',
       foto_url: null,
       documento_identidad: null,
@@ -249,7 +272,7 @@ describe('AuthService', () => {
     const result = await authService.loginFederado(dto);
 
     expect(usuariosService.findByCorreo).toHaveBeenCalledWith(
-      'ruthgabrielalayme@gmail.com',
+      'ruthgabrielalayme@example.com',
     );
     expect(usuariosService.save).toHaveBeenCalledWith(
       expect.objectContaining({
