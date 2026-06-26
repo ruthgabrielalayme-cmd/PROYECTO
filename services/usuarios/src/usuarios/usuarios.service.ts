@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Usuario } from './usuario.entity';
+import { EstadoUsuario, Rol, Usuario } from './usuario.entity';
 import { UpdateUsuarioDto } from './usuario.dto';
 
 @Injectable()
@@ -17,8 +17,31 @@ export class UsuariosService {
     private readonly usuariosRepo: Repository<Usuario>,
   ) {}
 
-  async findAll(): Promise<Usuario[]> {
-    return this.usuariosRepo.find();
+  async findAll(user: { rol: string; area: string | null }, search?: string): Promise<Usuario[]> {
+    const qb = this.usuariosRepo.createQueryBuilder('usuario');
+
+    if (user.rol === Rol.ADMIN) {
+      if (search) {
+        qb.andWhere('usuario.nombre_completo LIKE :search', { search: `%${search}%` });
+      }
+    } else {
+      // FUNCIONARIO o ENCARGADO
+      if (search) {
+        // Búsqueda global, pero solo activos
+        qb.andWhere('usuario.nombre_completo LIKE :search', { search: `%${search}%` })
+          .andWhere('usuario.estado = :estado', { estado: EstadoUsuario.ACTIVO });
+      } else {
+        // Sin búsqueda: solo los de su área
+        if (user.area) {
+          qb.andWhere('usuario.area = :area', { area: user.area });
+        } else {
+          // Si el usuario no tiene área asignada y no es admin, no ve a nadie para prevenir fugas
+          qb.andWhere('1 = 0');
+        }
+      }
+    }
+
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<Usuario> {

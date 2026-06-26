@@ -10,7 +10,8 @@ export class EncargadoController {
 
   @Get('encargado/:area')
   async findEncargadoByArea(@Param('area') area: string) {
-    const todos = await this.usuariosService.findAll();
+    // Para endpoints internos, buscamos con rol ADMIN para que no haya filtro de área por defecto
+    const todos = await this.usuariosService.findAll({ rol: Rol.ADMIN, area: null });
     return todos.find(u => u.area === area && u.rol === Rol.ENCARGADO && u.estado === EstadoUsuario.ACTIVO);
   }
 }
