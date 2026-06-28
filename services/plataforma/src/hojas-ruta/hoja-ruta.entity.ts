@@ -49,4 +49,7 @@ export class HojaRuta {
 
   @UpdateDateColumn()
   updated_at!: Date;
+
+  // Propiedades enriquecidas en tiempo de ejecución (no persisten en BD)
+  creado_por_nombre?: string | null;
 }

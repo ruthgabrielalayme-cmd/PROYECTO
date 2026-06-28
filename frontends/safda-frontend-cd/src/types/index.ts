@@ -68,6 +68,7 @@ export interface HojaRuta {
   area_origen: string;
   estado: EstadoHojaRuta;
   creado_por: string;
+  creado_por_nombre?: string | null;
   derivaciones?: Derivacion[];
   created_at: string;
   updated_at: string;
@@ -77,8 +78,11 @@ export interface Derivacion {
   id: string;
   hoja_ruta: HojaRuta;
   documento_id: string;
+  documento_nombre?: string | null;
   remitente_id: string;
+  remitente_nombre?: string | null;
   destinatario_id: string;
+  destinatario_nombre?: string | null;
   es_externa: boolean;
   estado: EstadoDerivacion;
   nota: string | null;
