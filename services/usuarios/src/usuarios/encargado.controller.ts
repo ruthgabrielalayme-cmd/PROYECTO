@@ -14,4 +14,9 @@ export class EncargadoController {
     const todos = await this.usuariosService.findAll({ rol: Rol.ADMIN, area: null });
     return todos.find(u => u.area === area && u.rol === Rol.ENCARGADO && u.estado === EstadoUsuario.ACTIVO);
   }
+
+  @Get(':id')
+  async findOneInternal(@Param('id') id: string) {
+    return this.usuariosService.findOne(id);
+  }
 }

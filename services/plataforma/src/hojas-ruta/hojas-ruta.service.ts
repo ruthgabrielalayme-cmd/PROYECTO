@@ -50,7 +50,7 @@ export class HojasRutaService {
       if (!userId) continue;
       try {
         const res = await firstValueFrom(
-          this.httpService.get(`${this.usuariosUrl}/usuarios/${userId}`, {
+          this.httpService.get(`${this.usuariosUrl}/usuarios/internos/${userId}`, {
             headers: { 'X-Internal-Token': this.internalToken },
           })
         );
@@ -67,7 +67,7 @@ export class HojasRutaService {
       if (!docId) continue;
       try {
         const res = await firstValueFrom(
-          this.httpService.get(`${this.documentosUrl}/documentos/${docId}`, {
+          this.httpService.get(`${this.documentosUrl}/documentos/internos/${docId}`, {
             headers: { 'X-Internal-Token': this.internalToken },
           })
         );

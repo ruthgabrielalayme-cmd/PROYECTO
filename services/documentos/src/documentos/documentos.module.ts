@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Documento } from './documento.entity';
 import { DocumentosService } from './documentos.service';
 import { DocumentosController } from './documentos.controller';
+import { DocumentosInternosController } from './internos.controller';
 import { TiposDocumentoModule } from '../tipos-documento/tipos-documento.module';
 
 @Module({
@@ -24,7 +25,7 @@ import { TiposDocumentoModule } from '../tipos-documento/tipos-documento.module'
     TiposDocumentoModule,
   ],
   providers: [DocumentosService],
-  controllers: [DocumentosController],
+  controllers: [DocumentosController, DocumentosInternosController],
   exports: [DocumentosService],
 })
 export class DocumentosModule {}
