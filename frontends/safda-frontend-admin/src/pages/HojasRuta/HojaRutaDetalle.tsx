@@ -67,7 +67,7 @@ export default function HojaRutaDetalle() {
           {[
             { label: 'Código',      value: <span className="font-mono font-bold text-primary-700">{hr.codigo}</span> },
             { label: 'Área Origen', value: hr.area_origen },
-            { label: 'Creado por',  value: <span className="text-sm">{hr.creado_por_nombre || hr.creado_por.slice(0, 8) + '...'}</span> },
+            { label: 'Creado por',  value: <span className="text-sm">{hr.creado_por_nombre || 'Usuario desconocido'}</span> },
           ].map(({ label, value }) => (
             <div key={label} className="card p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
@@ -114,11 +114,11 @@ export default function HojaRutaDetalle() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                       <span>
                         <span className="font-medium text-slate-700">De:</span>{' '}
-                        <span>{d.remitente_nombre || d.remitente_id.slice(0, 8) + '...'}</span>
+                        <span>{d.remitente_nombre || 'Usuario desconocido'}</span>
                       </span>
                       <span>
                         <span className="font-medium text-slate-700">Para:</span>{' '}
-                        <span>{d.destinatario_nombre || d.destinatario_id.slice(0, 8) + '...'}</span>
+                        <span>{d.destinatario_nombre || 'Usuario desconocido'}</span>
                       </span>
                     </div>
 
@@ -132,7 +132,7 @@ export default function HojaRutaDetalle() {
                   {/* Acciones */}
                   <div className="shrink-0 text-right">
                     <p className="text-xs text-slate-500 mb-1">
-                      Documento: <span className="font-medium text-slate-700">{d.documento_nombre || d.documento_id.slice(0, 8) + '...'}</span>
+                      Documento: <span className="font-medium text-slate-700">{d.documento_nombre || 'Documento desconocido'}</span>
                     </p>
                     <Link
                       to={`/documentos/${d.documento_id}`}

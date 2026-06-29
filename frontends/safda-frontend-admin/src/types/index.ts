@@ -53,6 +53,7 @@ export interface Documento {
   site_generado: string | null;
   estado: EstadoDocumento;
   creado_por: string;
+  creado_por_nombre?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -30,6 +30,17 @@ export default function DocumentoDetalle() {
     </AdminLayout>
   )
 
+  const handleVerPdf = async () => {
+    if (!id) return
+    try {
+      const blob = await documentosService.verPdf(id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (err) {
+      alert('Error al visualizar el PDF')
+    }
+  }
+
   return (
     <AdminLayout>
       <PageShell
@@ -37,6 +48,11 @@ export default function DocumentoDetalle() {
         subtitle={doc.nombre_archivo}
         action={
           <div className="flex gap-2">
+            {(doc.estado === 'PDF_SUBIDO' || doc.estado === 'EN_FLUJO' || doc.estado as string === 'FINALIZADO') && (
+              <button onClick={handleVerPdf} className="btn-secondary">
+                Ver PDF
+              </button>
+            )}
             {doc.estado !== 'EN_FLUJO' && (
               <Link to={`/documentos/${id}/subir-pdf`} className="btn-primary">
                 Subir PDF
@@ -64,7 +80,7 @@ export default function DocumentoDetalle() {
                 ['CITE',       doc.site_generado
                   ? <span className="font-mono font-bold text-primary-700">{doc.site_generado}</span>
                   : <span className="text-slate-400 italic">No generado</span>],
-                ['Creado por', <span className="font-mono text-xs">{doc.creado_por}</span>],
+                ['Creado por', <span className="text-sm font-medium">{doc.creado_por_nombre || 'Usuario desconocido'}</span>],
                 ['Creado el',  format(new Date(doc.created_at), "dd 'de' MMMM yyyy HH:mm", { locale: es })],
                 ['Actualizado', format(new Date(doc.updated_at), "dd 'de' MMMM yyyy HH:mm", { locale: es })],
               ].map(([k, v]) => (

@@ -7,10 +7,12 @@ import { DocumentosService } from './documentos.service';
 import { DocumentosController } from './documentos.controller';
 import { DocumentosInternosController } from './internos.controller';
 import { TiposDocumentoModule } from '../tipos-documento/tipos-documento.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Documento]),
+    HttpModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

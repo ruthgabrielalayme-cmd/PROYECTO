@@ -24,6 +24,17 @@ export default function DetalleDocumento() {
   if (loading) return <><Navbar /><div className="flex justify-center py-24"><Spinner size="lg" /></div></>
   if (error || !doc) return <><Navbar /><PageShell title="Error"><Alert type="error" message={error ?? 'Documento no encontrado'} /></PageShell></>
 
+  const handleVerPdf = async () => {
+    if (!id) return
+    try {
+      const blob = await documentosService.verPdf(id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (err) {
+      alert('Error al visualizar el PDF')
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -32,6 +43,11 @@ export default function DetalleDocumento() {
         subtitle={`Creado el ${format(new Date(doc.created_at), "dd 'de' MMMM yyyy", { locale: es })}`}
         action={
           <div className="flex gap-2">
+            {(doc.estado === 'PDF_SUBIDO' || doc.estado === 'EN_FLUJO' || doc.estado as string === 'FINALIZADO') && (
+              <button onClick={handleVerPdf} className="btn-secondary">
+                Ver PDF
+              </button>
+            )}
             {doc.estado !== 'EN_FLUJO' && (
               <Link to={`/documentos/${id}/subir-pdf`} className="btn-primary">
                 Subir PDF
@@ -52,7 +68,7 @@ export default function DetalleDocumento() {
             <div className="space-y-3 text-sm">
               <Row label="Estado"><BadgeEstadoDoc estado={doc.estado} /></Row>
               <Row label="Tipo">{doc.tipo_documento.nombre}</Row>
-              <Row label="Creado por">{doc.creado_por}</Row>
+              <Row label="Creado por">{doc.creado_por_nombre || 'Usuario desconocido'}</Row>
               {doc.site_generado && (
                 <Row label="CITE">
                   <span className="font-mono font-bold text-primary-700">{doc.site_generado}</span>

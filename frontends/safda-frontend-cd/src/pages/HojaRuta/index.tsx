@@ -77,13 +77,13 @@ export default function HojaRutaPage() {
                       <p className="mt-1 text-sm text-slate-600">"{d.nota}"</p>
                     )}
                     <p className="mt-0.5 text-xs text-slate-500">
-                      De: <span className="font-medium text-slate-700">{d.remitente_nombre || d.remitente_id.slice(0, 8) + '...'}</span> &nbsp;|&nbsp;
-                      Para: <span className="font-medium text-slate-700">{d.destinatario_nombre || d.destinatario_id.slice(0, 8) + '...'}</span>
+                      De: <span className="font-medium text-slate-700">{d.remitente_nombre || 'Usuario desconocido'}</span> &nbsp;|&nbsp;
+                      Para: <span className="font-medium text-slate-700">{d.destinatario_nombre || 'Usuario desconocido'}</span>
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs text-slate-500 mb-1">
-                      Documento: <span className="font-medium text-slate-700">{d.documento_nombre || d.documento_id.slice(0, 8) + '...'}</span>
+                      Documento: <span className="font-medium text-slate-700">{d.documento_nombre || 'Documento desconocido'}</span>
                     </p>
                     <Link
                       to={`/documentos/${d.documento_id}`}

@@ -108,6 +108,30 @@ export class DocumentosController {
   }
 
   /**
+   * GET /documentos/:id/pdf
+   * Retorna el archivo PDF asociado al documento.
+   */
+  @Get(':id/pdf')
+  async getPdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const doc = await this.documentosService.findOne(id);
+    if (!doc.archivo_path) {
+      throw new BadRequestException('El documento no tiene un PDF subido');
+    }
+
+    const absolutePath = path.resolve(doc.archivo_path);
+    if (!fs.existsSync(absolutePath)) {
+      throw new BadRequestException('Archivo PDF no encontrado en el servidor');
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${doc.nombre_archivo}"`);
+    res.sendFile(absolutePath);
+  }
+
+  /**
    * PATCH /documentos/:id/estado
    * Cambia el estado de un documento.
    */

@@ -65,4 +65,7 @@ export class Documento {
 
   @UpdateDateColumn()
   updated_at!: Date;
+
+  // Propiedad enriquecida (no persiste en BD)
+  creado_por_nombre?: string | null;
 }

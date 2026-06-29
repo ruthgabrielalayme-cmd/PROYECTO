@@ -15,17 +15,42 @@ import * as QRCode from 'qrcode';
 import { Documento, EstadoDocumento } from './documento.entity';
 import { TiposDocumentoService } from '../tipos-documento/tipos-documento.service';
 import { CreateDocumentoDto } from './documento.dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DocumentosService {
   private readonly logger = new Logger(DocumentosService.name);
+  private readonly usuariosUrl: string;
+  private readonly internalToken: string;
 
   constructor(
     @InjectRepository(Documento)
     private readonly repo: Repository<Documento>,
     private readonly tiposDocumentoService: TiposDocumentoService,
     private readonly config: ConfigService,
-  ) {}
+    private readonly httpService: HttpService,
+  ) {
+    this.usuariosUrl = this.config.get<string>('USUARIOS_URL') || this.config.get<string>('USUARIOS_SERVICE_URL')!;
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;
+  }
+
+  private async enrichDocumento(doc: Documento): Promise<Documento> {
+    if (!doc.creado_por) return doc;
+    try {
+      const res = await firstValueFrom(
+        this.httpService.get<any>(`${this.usuariosUrl}/usuarios/internos/${doc.creado_por}`, {
+          headers: { 'X-Internal-Token': this.internalToken },
+        })
+      );
+      if (res.data?.nombre_completo) {
+        doc.creado_por_nombre = res.data.nombre_completo;
+      }
+    } catch (err) {
+      this.logger.warn(`Could not fetch user name for ${doc.creado_por}`);
+    }
+    return doc;
+  }
 
   async findAllByUser(user: { id: string; rol: string; area: string | null }): Promise<Documento[]> {
   const qb = this.repo.createQueryBuilder('doc')
@@ -50,7 +75,8 @@ export class DocumentosService {
   } else {
     // FUNCIONARIO: documentos de su área o donde es creador
     qb.andWhere('(doc.area = :area OR doc.creado_por = :userId)', { area: user.area, userId: user.id });
-    return qb.getMany();
+    const docs = await qb.getMany();
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
   }
 }
 
@@ -79,7 +105,8 @@ export class DocumentosService {
   // ─── Obtener documentos ────────────────────────────────────────────────
 
   async findAll(): Promise<Documento[]> {
-    return this.repo.find({ relations: ['tipo_documento'] });
+    const docs = await this.repo.find({ relations: ['tipo_documento'] });
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
   }
 
   async findOne(id: string): Promise<Documento> {
@@ -88,7 +115,7 @@ export class DocumentosService {
       relations: ['tipo_documento'],
     });
     if (!doc) throw new NotFoundException(`Documento ${id} no encontrado`);
-    return doc;
+    return this.enrichDocumento(doc);
   }
 
   // ─── Descargar plantilla ─────────────────────────────────────────────────
