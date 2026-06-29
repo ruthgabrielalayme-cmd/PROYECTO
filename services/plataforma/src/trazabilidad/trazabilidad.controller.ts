@@ -13,7 +13,7 @@ export class TrazabilidadController {
     private readonly httpService: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL')!;
+    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL') || this.config.get<string>('DOCUMENTOS_SERVICE_URL')!;
     this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;
   }
 
