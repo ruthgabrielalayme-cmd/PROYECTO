@@ -47,7 +47,7 @@ export class DocumentosService {
         doc.creado_por_nombre = res.data.nombre_completo;
       }
     } catch (err) {
-      this.logger.warn(`Could not fetch user name for ${doc.creado_por}`);
+      this.logger.warn(`Could not fetch user name for ${doc.creado_por}: ${(err as any).message} ${(err as any).response?.status}`);
     }
     return doc;
   }

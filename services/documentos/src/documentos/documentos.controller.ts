@@ -21,7 +21,6 @@ import { DocumentosService } from './documentos.service';
 import { CreateDocumentoDto, SubirPdfDto } from './documento.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EstadoDocumento } from './documento.entity';
-import { InternalGuard } from '../guards/internal.guard';
 @Controller('documentos')
 @UseGuards(JwtAuthGuard)
 export class DocumentosController {
@@ -131,19 +130,4 @@ export class DocumentosController {
     res.sendFile(absolutePath);
   }
 
-  /**
-   * PATCH /documentos/:id/estado
-   * Cambia el estado de un documento.
-   */
-  @Patch(':id/estado')
-  @UseGuards(InternalGuard)  // ← solo llamadas internas con token
-  async cambiarEstado(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body('estado') nuevoEstado: EstadoDocumento,  // ← cambia de 'nuevoEstado' a 'estado'
-  ) {
-    if (!Object.values(EstadoDocumento).includes(nuevoEstado)) {
-      throw new BadRequestException('Estado no válido');
-    }
-    return this.documentosService.cambiarEstado(id, nuevoEstado);
   }
-}

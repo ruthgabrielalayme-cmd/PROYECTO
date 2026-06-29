@@ -58,7 +58,7 @@ export class HojasRutaService {
           userNames.set(userId, res.data.nombre_completo);
         }
       } catch (err) {
-        this.logger.warn(`Could not fetch user name for ${userId}`);
+        this.logger.warn(`Could not fetch user name for ${userId}: ${(err as any).message} ${(err as any).response?.status}`);
       }
     }
 
@@ -75,7 +75,7 @@ export class HojasRutaService {
           docNames.set(docId, res.data.nombre_archivo);
         }
       } catch (err) {
-        this.logger.warn(`Could not fetch document name for ${docId}`);
+        this.logger.warn(`Could not fetch document name for ${docId}: ${(err as any).message} ${(err as any).response?.status}`);
       }
     }
 
@@ -175,7 +175,7 @@ export class HojasRutaService {
       try {
         await firstValueFrom(
           this.httpService.patch(
-            `${this.documentosUrl}/documentos/${docId}/estado`,
+            `${this.documentosUrl}/documentos/internos/${docId}/estado`,
             { estado: 'FINALIZADO' },
             {
               headers: {
