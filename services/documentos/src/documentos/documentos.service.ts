@@ -31,8 +31,8 @@ export class DocumentosService {
     private readonly config: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.usuariosUrl = this.config.get<string>('USUARIOS_URL') || this.config.get<string>('USUARIOS_SERVICE_URL')!;
-    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;
+    this.usuariosUrl = this.config.get<string>('USUARIOS_URL') || this.config.get<string>('USUARIOS_SERVICE_URL') || 'http://localhost:3001';
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET') || 'reemplaza_con_un_secret_largo_y_seguro';
   }
 
   private async enrichDocumento(doc: Documento): Promise<Documento> {
@@ -107,6 +107,16 @@ export class DocumentosService {
   async findAll(): Promise<Documento[]> {
     const docs = await this.repo.find({ relations: ['tipo_documento'] });
     return Promise.all(docs.map(d => this.enrichDocumento(d)));
+  }
+
+
+  async findByQr(qrId: string): Promise<Documento> {
+    const doc = await this.repo.findOne({
+      where: { qr_id: qrId },
+      relations: ['tipo_documento'],
+    });
+    if (!doc) throw new NotFoundException(`Documento con QR ${qrId} no encontrado`);
+    return this.enrichDocumento(doc);
   }
 
   async findOne(id: string): Promise<Documento> {

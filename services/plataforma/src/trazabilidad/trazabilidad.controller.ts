@@ -13,8 +13,8 @@ export class TrazabilidadController {
     private readonly httpService: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL') || this.config.get<string>('DOCUMENTOS_SERVICE_URL')!;
-    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET')!;
+    this.documentosUrl = this.config.get<string>('DOCUMENTOS_URL') || this.config.get<string>('DOCUMENTOS_SERVICE_URL') || 'http://localhost:3002';
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET') || 'reemplaza_con_un_secret_largo_y_seguro';
   }
 
   @Get(':qrId')

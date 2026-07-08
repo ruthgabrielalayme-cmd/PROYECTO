@@ -6,6 +6,7 @@ import { Documento } from './documento.entity';
 import { DocumentosService } from './documentos.service';
 import { DocumentosController } from './documentos.controller';
 import { DocumentosInternosController } from './internos.controller';
+import { DocumentosPublicosController } from './publicos.controller';
 import { TiposDocumentoModule } from '../tipos-documento/tipos-documento.module';
 import { HttpModule } from '@nestjs/axios';
 
@@ -27,7 +28,7 @@ import { HttpModule } from '@nestjs/axios';
     TiposDocumentoModule,
   ],
   providers: [DocumentosService],
-  controllers: [DocumentosController, DocumentosInternosController],
+  controllers: [DocumentosController, DocumentosInternosController, DocumentosPublicosController],
   exports: [DocumentosService],
 })
 export class DocumentosModule {}
