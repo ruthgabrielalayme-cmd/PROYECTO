@@ -58,7 +58,7 @@ useEffect(() => {
     return matchTexto && matchEstado
   })
 
-  const ESTADOS: EstadoDocumento[] = ['BORRADOR', 'PENDIENTE_SUBIDA', 'PDF_SUBIDO', 'EN_FLUJO']
+  const ESTADOS: EstadoDocumento[] = ['BORRADOR', 'BORRADOR_APROBADO', 'PENDIENTE_SUBIDA', 'PDF_SUBIDO', 'EN_FLUJO']
 
   const handleCrearDocumento = async (e: React.FormEvent) => {
   e.preventDefault();

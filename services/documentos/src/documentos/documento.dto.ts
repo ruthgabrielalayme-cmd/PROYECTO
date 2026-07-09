@@ -28,3 +28,13 @@ export class SubirPdfDto {
   @IsNotEmpty()
   site!: string;
 }
+
+export class EvaluarBorradorDto {
+  @IsString()
+  @IsNotEmpty()
+  accion!: 'APROBAR' | 'RECHAZAR';
+
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
+}

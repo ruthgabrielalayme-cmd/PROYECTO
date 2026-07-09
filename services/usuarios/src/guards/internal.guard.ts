@@ -14,7 +14,7 @@ export class InternalGuard implements CanActivate {
       throw new UnauthorizedException('Token interno no configurado');
     }
     if (!token || token !== expected) {
-      logger.warn(`Token mismatch.`);
+      logger.warn(`Token mismatch. Received: ${token}, Expected: ${expected}`);
       throw new UnauthorizedException('Acceso interno no autorizado');
     }
     return true;

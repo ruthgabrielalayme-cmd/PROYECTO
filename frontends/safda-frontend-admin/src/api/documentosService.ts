@@ -42,6 +42,17 @@ export const documentosService = {
     }).then((r) => r.data)
   },
 
+  subirWord: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiDocumentos.post<Documento>(`/documentos/${id}/subir-word`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data)
+  },
+
+  evaluar: (id: string, accion: 'APROBAR' | 'RECHAZAR', observaciones?: string) =>
+    apiDocumentos.patch<Documento>(`/documentos/${id}/evaluar`, { accion, observaciones }).then((r) => r.data),
+
   verPdf: (id: string) =>
     apiDocumentos.get(`/documentos/${id}/pdf`, { responseType: 'blob' }).then((r) => r.data),
 }

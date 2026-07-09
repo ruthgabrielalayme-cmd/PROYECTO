@@ -34,7 +34,7 @@ export interface LoginResponse {
 }
 
 // ─── Documentos ──────────────────────────────────────────────────────────
-export type EstadoDocumento = 'BORRADOR' | 'PENDIENTE_SUBIDA' | 'PDF_SUBIDO' | 'EN_FLUJO';
+export type EstadoDocumento = 'BORRADOR' | 'BORRADOR_APROBADO' | 'PENDIENTE_SUBIDA' | 'PDF_SUBIDO' | 'EN_FLUJO';
 
 export interface TipoDocumento {
   id: string;
@@ -49,6 +49,8 @@ export interface Documento {
   tipo_documento: TipoDocumento;
   nombre_archivo: string;
   archivo_path: string | null;
+  archivo_word_path: string | null;
+  observaciones_rechazo: string | null;
   qr_id: string | null;
   site_generado: string | null;
   estado: EstadoDocumento;

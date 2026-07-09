@@ -148,6 +148,70 @@ export class DocumentosService {
     return { filePath: tipo.plantilla_path, fileName };
   }
 
+  // ─── Subir Word Borrador ─────────────────────────────────────────────────
+
+  async subirWord(documentoId: string, fileBuffer: Buffer, originalName: string): Promise<Documento> {
+    const doc = await this.findOne(documentoId);
+
+    if (doc.estado !== EstadoDocumento.BORRADOR) {
+      throw new BadRequestException('Solo se puede subir un borrador si el documento está en estado BORRADOR');
+    }
+
+    const storagePath = this.config.get<string>('STORAGE_PATH_WORDS') ?? './storage/words';
+    await fs.mkdir(storagePath, { recursive: true });
+
+    const ext = path.extname(originalName);
+    const fileName = `${documentoId}-${Date.now()}${ext}`;
+    const filePath = path.join(storagePath, fileName);
+
+    // Si ya existe un archivo, lo borramos
+    if (doc.archivo_word_path) {
+      try {
+        await fs.unlink(doc.archivo_word_path);
+      } catch (err) {
+        this.logger.warn(`No se pudo eliminar el archivo Word anterior: ${doc.archivo_word_path}`);
+      }
+    }
+
+    await fs.writeFile(filePath, fileBuffer);
+
+    doc.archivo_word_path = filePath;
+    doc.observaciones_rechazo = null; // Limpiar observaciones al resubir
+
+    const saved = await this.repo.save(doc);
+    this.logger.log(`Word borrador subido para documento ${documentoId}`);
+    return saved;
+  }
+
+  // ─── Evaluar Borrador (Aprobar / Rechazar) ───────────────────────────────
+
+  async evaluarBorrador(documentoId: string, accion: 'APROBAR' | 'RECHAZAR', observaciones?: string): Promise<Documento> {
+    const doc = await this.findOne(documentoId);
+
+    if (doc.estado !== EstadoDocumento.BORRADOR) {
+      throw new BadRequestException('Solo se puede evaluar un documento en estado BORRADOR');
+    }
+    if (!doc.archivo_word_path) {
+      throw new BadRequestException('El documento no tiene un archivo Word subido para evaluar');
+    }
+
+    if (accion === 'APROBAR') {
+      doc.estado = EstadoDocumento.BORRADOR_APROBADO;
+      doc.observaciones_rechazo = null;
+      this.logger.log(`Documento ${documentoId} aprobado por el encargado`);
+    } else if (accion === 'RECHAZAR') {
+      if (!observaciones) {
+        throw new BadRequestException('Debe incluir observaciones al rechazar');
+      }
+      doc.observaciones_rechazo = observaciones;
+      this.logger.log(`Documento ${documentoId} rechazado por el encargado`);
+    } else {
+      throw new BadRequestException('Acción no válida');
+    }
+
+    return this.repo.save(doc);
+  }
+
   // ─── Subir PDF definitivo con site + QR ──────────────────────────────────
 
   async subirPdf(
@@ -157,9 +221,9 @@ export class DocumentosService {
   ): Promise<Documento> {
     const doc = await this.findOne(documentoId);
 
-    if (doc.estado === EstadoDocumento.EN_FLUJO) {
+    if (doc.estado !== EstadoDocumento.BORRADOR_APROBADO) {
       throw new BadRequestException(
-        'El documento ya está en flujo y no puede modificarse',
+        'El documento debe estar aprobado (BORRADOR_APROBADO) para subir el PDF definitivo',
       );
     }
 

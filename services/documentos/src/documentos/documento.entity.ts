@@ -11,6 +11,7 @@ import { TipoDocumento } from '../tipos-documento/tipo-documento.entity';
 
 export enum EstadoDocumento {
   BORRADOR = 'BORRADOR',
+  BORRADOR_APROBADO = 'BORRADOR_APROBADO',
   PDF_SUBIDO = 'PDF_SUBIDO',
   EN_FLUJO = 'EN_FLUJO',
   FINALIZADO = 'FINALIZADO',
@@ -40,6 +41,12 @@ export class Documento {
 
   @Column({ type: 'varchar', length: 512, nullable: true })
   archivo_path!: string | null;
+
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  archivo_word_path!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  observaciones_rechazo!: string | null;
 
   /** UUID único para generar el QR del documento */
   @Column({ type: 'varchar', length: 36, nullable: true })

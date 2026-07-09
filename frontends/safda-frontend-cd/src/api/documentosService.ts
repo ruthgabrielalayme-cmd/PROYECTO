@@ -6,6 +6,17 @@ export const documentosService = {
   getTipos: () =>
     apiDocumentos.get<TipoDocumento[]>('/tipos-documento').then((r) => r.data),
 
+  crearTipo: (data: { nombre: string }) =>
+    apiDocumentos.post<TipoDocumento>('/tipos-documento', data).then((r) => r.data),
+
+  subirPlantilla: (tipoId: string, file: File) => {
+    const form = new FormData()
+    form.append('archivo', file)
+    return apiDocumentos.post(`/tipos-documento/${tipoId}/plantilla`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data)
+  },
+
   descargarPlantilla: (tipoId: string) =>
     apiDocumentos.get(`/documentos/plantilla/${tipoId}`, { responseType: 'blob' }).then((r) => r.data),
 
@@ -16,8 +27,11 @@ export const documentosService = {
   getById: (id: string) =>
     apiDocumentos.get<Documento>(`/documentos/${id}`).then((r) => r.data),
 
-  create: (data: { tipo_documento_id: string; hoja_ruta_id?: string; creado_por: string }) =>
-    apiDocumentos.post<Documento>('/documentos', data).then((r) => r.data),
+  create: (data: {
+    tipo_documento_id: string;
+    hoja_ruta_id?: string;
+    creado_por: string;
+  }) => apiDocumentos.post<Documento>('/documentos', data).then((r) => r.data),
 
   subirPdf: (id: string, file: File, site: string) => {
     const form = new FormData()
@@ -27,6 +41,17 @@ export const documentosService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data)
   },
+
+  subirWord: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiDocumentos.post<Documento>(`/documentos/${id}/subir-word`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data)
+  },
+
+  evaluar: (id: string, accion: 'APROBAR' | 'RECHAZAR', observaciones?: string) =>
+    apiDocumentos.patch<Documento>(`/documentos/${id}/evaluar`, { accion, observaciones }).then((r) => r.data),
 
   verPdf: (id: string) =>
     apiDocumentos.get(`/documentos/${id}/pdf`, { responseType: 'blob' }).then((r) => r.data),

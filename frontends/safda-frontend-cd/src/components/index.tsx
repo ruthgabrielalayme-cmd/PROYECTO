@@ -113,12 +113,14 @@ export function EmptyState({ icon, title, description }: {
 // ─── Estado Badges ────────────────────────────────────────────────────────
 const estadoDoc: Record<EstadoDocumento, string> = {
   BORRADOR:         'bg-slate-100 text-slate-600',
+  BORRADOR_APROBADO: 'bg-teal-100 text-teal-700',
   PENDIENTE_SUBIDA: 'bg-amber-100 text-amber-700',
   PDF_SUBIDO:       'bg-blue-100 text-blue-700',
   EN_FLUJO:         'bg-green-100 text-green-700',
 }
 const estadoDocLabel: Record<EstadoDocumento, string> = {
   BORRADOR:         'Borrador',
+  BORRADOR_APROBADO: 'Borrador Aprobado',
   PENDIENTE_SUBIDA: 'Pendiente subida',
   PDF_SUBIDO:       'PDF subido',
   EN_FLUJO:         'En flujo',

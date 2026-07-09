@@ -18,11 +18,14 @@ import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DocumentosService } from './documentos.service';
-import { CreateDocumentoDto, SubirPdfDto } from './documento.dto';
+import { CreateDocumentoDto, SubirPdfDto, EvaluarBorradorDto } from './documento.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { EstadoDocumento } from './documento.entity';
+
 @Controller('documentos')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DocumentosController {
   constructor(private readonly documentosService: DocumentosService) {}
 
@@ -76,6 +79,30 @@ export class DocumentosController {
   }
 
   /**
+   * POST /documentos/:id/subir-word
+   * Sube el archivo Word en fase de borrador
+   */
+  @Post(':id/subir-word')
+  @UseInterceptors(FileInterceptor('file'))
+  async subirWord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se recibió ningún archivo');
+    }
+    const validMimes = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!validMimes.includes(file.mimetype)) {
+      throw new BadRequestException('Solo se aceptan archivos Word (.doc, .docx)');
+    }
+
+    return this.documentosService.subirWord(id, file.buffer, file.originalname);
+  }
+
+  /**
    * POST /documentos/:id/subir-pdf
    * Sube el PDF definitivo, inserta el site y el QR, y almacena el archivo.
    * Requiere multipart/form-data con campo 'file' (PDF) y campo 'site'.
@@ -104,6 +131,19 @@ export class DocumentosController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.documentosService.findOne(id);
+  }
+
+  /**
+   * PATCH /documentos/:id/evaluar
+   * Permite al encargado aprobar o rechazar un borrador
+   */
+  @Patch(':id/evaluar')
+  @Roles('ENCARGADO')
+  async evaluarBorrador(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: EvaluarBorradorDto,
+  ) {
+    return this.documentosService.evaluarBorrador(id, dto.accion, dto.observaciones);
   }
 
   /**
