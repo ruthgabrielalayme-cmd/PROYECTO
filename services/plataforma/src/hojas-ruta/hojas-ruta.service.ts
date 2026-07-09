@@ -46,8 +46,8 @@ export class HojasRutaService {
     const docNames = new Map<string, string>();
 
     // Fetch users
-    for (const userId of userIds) {
-      if (!userId) continue;
+    const userPromises = Array.from(userIds).map(async (userId) => {
+      if (!userId) return;
       try {
         const res = await firstValueFrom(
           this.httpService.get(`${this.usuariosUrl}/usuarios/internos/${userId}`, {
@@ -60,11 +60,11 @@ export class HojasRutaService {
       } catch (err) {
         this.logger.warn(`Could not fetch user name for ${userId}: ${(err as any).message} ${(err as any).response?.status}`);
       }
-    }
+    });
 
     // Fetch documents
-    for (const docId of docIds) {
-      if (!docId) continue;
+    const docPromises = Array.from(docIds).map(async (docId) => {
+      if (!docId) return;
       try {
         const res = await firstValueFrom(
           this.httpService.get(`${this.documentosUrl}/documentos/internos/${docId}`, {
@@ -77,7 +77,9 @@ export class HojasRutaService {
       } catch (err) {
         this.logger.warn(`Could not fetch document name for ${docId}: ${(err as any).message} ${(err as any).response?.status}`);
       }
-    }
+    });
+
+    await Promise.all([...userPromises, ...docPromises]);
 
     // Attach names
     (hr as any).creado_por_nombre = userNames.get(hr.creado_por) || null;

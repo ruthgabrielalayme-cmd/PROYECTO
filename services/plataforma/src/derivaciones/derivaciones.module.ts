@@ -15,5 +15,6 @@ import { HttpModule } from '@nestjs/axios';
   ],
   providers: [DerivacionesService],
   controllers: [DerivacionesController],
+  exports: [DerivacionesService],
 })
 export class DerivacionesModule {}
