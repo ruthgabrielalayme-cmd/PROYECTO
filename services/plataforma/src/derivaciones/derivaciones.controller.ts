@@ -19,6 +19,7 @@ export class DerivacionesController {
   constructor(private readonly service: DerivacionesService) {}
 
   @Post()
+  @Roles('FUNCIONARIO', 'ENCARGADO', 'ADMIN')
   create(@Body() dto: CreateDerivacionDto) {
     return this.service.create(dto);
   }
@@ -36,5 +37,10 @@ export class DerivacionesController {
     @Body() dto: RechazarDerivacionDto,
   ) {
     return this.service.rechazar(id, dto.motivo);
+  }
+
+  @Patch(':id/recibir')
+  recibir(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.recibir(id);
   }
 }

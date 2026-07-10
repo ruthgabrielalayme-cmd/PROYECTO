@@ -34,7 +34,7 @@ export interface LoginResponse {
 }
 
 // ─── Documentos ──────────────────────────────────────────────────────────
-export type EstadoDocumento = 'BORRADOR' | 'PENDIENTE_SUBIDA' | 'PDF_SUBIDO' | 'EN_FLUJO';
+export type EstadoDocumento = 'BORRADOR' | 'BORRADOR_APROBADO' | 'PENDIENTE_SUBIDA' | 'PDF_SUBIDO' | 'EN_FLUJO';
 
 export interface TipoDocumento {
   id: string;
@@ -49,10 +49,13 @@ export interface Documento {
   tipo_documento: TipoDocumento;
   nombre_archivo: string;
   archivo_path: string | null;
+  archivo_word_path: string | null;
+  observaciones_rechazo: string | null;
   qr_id: string | null;
   site_generado: string | null;
   estado: EstadoDocumento;
   creado_por: string;
+  creado_por_nombre?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +71,7 @@ export interface HojaRuta {
   area_origen: string;
   estado: EstadoHojaRuta;
   creado_por: string;
+  creado_por_nombre?: string | null;
   derivaciones?: Derivacion[];
   created_at: string;
   updated_at: string;
@@ -77,8 +81,11 @@ export interface Derivacion {
   id: string;
   hoja_ruta: HojaRuta;
   documento_id: string;
+  documento_nombre?: string | null;
   remitente_id: string;
+  remitente_nombre?: string | null;
   destinatario_id: string;
+  destinatario_nombre?: string | null;
   es_externa: boolean;
   estado: EstadoDerivacion;
   nota: string | null;

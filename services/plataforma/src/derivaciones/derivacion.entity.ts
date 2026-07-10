@@ -54,4 +54,9 @@ export class Derivacion {
 
   @UpdateDateColumn()
   updated_at!: Date;
+
+  // Propiedades enriquecidas en tiempo de ejecución (no persisten en BD)
+  remitente_nombre?: string | null;
+  destinatario_nombre?: string | null;
+  documento_nombre?: string | null;
 }

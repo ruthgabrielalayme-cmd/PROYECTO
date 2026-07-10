@@ -34,7 +34,11 @@ export default function TrazabilidadPage() {
     // Endpoint público — no requiere JWT
     apiPlataforma.get(`/trazabilidad/${qrId}`)
       .then((r) => setData(r.data as TrazabilidadResponse))
-      .catch(() => setError('No se encontró ningún documento con ese código QR.'))
+      .catch((err: any) => {
+        console.error(err);
+        const msg = err.response?.data?.message || err.message || 'Error desconocido';
+        setError('No se encontró ningún documento con ese código QR. Detalles: ' + msg);
+      })
       .finally(() => setLoading(false))
   }, [qrId])
 

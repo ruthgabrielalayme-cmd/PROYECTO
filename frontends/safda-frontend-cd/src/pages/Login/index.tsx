@@ -51,7 +51,19 @@ export default function LoginPage() {
     // Aquí enviamos el code directamente como token de demostración.
     login(code, 'CIUDADANIA_DIGITAL')
       .then(() => navigate('/bandeja-entrada', { replace: true }))
-      .catch(() => setError('Error al autenticar con Ciudadanía Digital.'))
+      .catch((err: any) => {
+        const statusCode = err?.response?.status ?? err?.status;
+        const msg = err?.response?.data?.message ?? '';
+        if (statusCode === 401 && msg.toLowerCase().includes('pendiente')) {
+          setError('Tu cuenta está pendiente de activación por un administrador.');
+        } else if (statusCode === 401 || statusCode === 403) {
+          setError('No tenés permisos para acceder. Tu cuenta puede estar inactiva.');
+        } else {
+          setError('Error al autenticar con Ciudadanía Digital.');
+        }
+        // Remove code from URL to prevent infinite loop of failing logins
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
   }, [])
 
   return (

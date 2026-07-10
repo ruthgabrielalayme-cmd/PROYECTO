@@ -18,12 +18,14 @@ import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DocumentosService } from './documentos.service';
-import { CreateDocumentoDto, SubirPdfDto } from './documento.dto';
+import { CreateDocumentoDto, SubirPdfDto, EvaluarBorradorDto } from './documento.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { EstadoDocumento } from './documento.entity';
-import { InternalGuard } from '../guards/internal.guard';
+
 @Controller('documentos')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DocumentosController {
   constructor(private readonly documentosService: DocumentosService) {}
 
@@ -77,6 +79,30 @@ export class DocumentosController {
   }
 
   /**
+   * POST /documentos/:id/subir-word
+   * Sube el archivo Word en fase de borrador
+   */
+  @Post(':id/subir-word')
+  @UseInterceptors(FileInterceptor('file'))
+  async subirWord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se recibió ningún archivo');
+    }
+    const validMimes = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!validMimes.includes(file.mimetype)) {
+      throw new BadRequestException('Solo se aceptan archivos Word (.doc, .docx)');
+    }
+
+    return this.documentosService.subirWord(id, file.buffer, file.originalname);
+  }
+
+  /**
    * POST /documentos/:id/subir-pdf
    * Sube el PDF definitivo, inserta el site y el QR, y almacena el archivo.
    * Requiere multipart/form-data con campo 'file' (PDF) y campo 'site'.
@@ -108,18 +134,64 @@ export class DocumentosController {
   }
 
   /**
-   * PATCH /documentos/:id/estado
-   * Cambia el estado de un documento.
+   * PATCH /documentos/:id/evaluar
+   * Permite al encargado aprobar o rechazar un borrador
    */
-  @Patch(':id/estado')
-  @UseGuards(InternalGuard)  // ← solo llamadas internas con token
-  async cambiarEstado(
+  @Patch(':id/evaluar')
+  @Roles('ENCARGADO')
+  async evaluarBorrador(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('estado') nuevoEstado: EstadoDocumento,  // ← cambia de 'nuevoEstado' a 'estado'
+    @Body() dto: EvaluarBorradorDto,
   ) {
-    if (!Object.values(EstadoDocumento).includes(nuevoEstado)) {
-      throw new BadRequestException('Estado no válido');
-    }
-    return this.documentosService.cambiarEstado(id, nuevoEstado);
+    return this.documentosService.evaluarBorrador(id, dto.accion, dto.observaciones);
   }
-}
+
+  /**
+   * GET /documentos/:id/word
+   * Retorna el archivo Word asociado al documento en estado BORRADOR.
+   */
+  @Get(':id/word')
+  async getWord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const doc = await this.documentosService.findOne(id);
+    if (!doc.archivo_word_path) {
+      throw new BadRequestException('El documento no tiene un archivo Word subido');
+    }
+
+    const absolutePath = path.resolve(doc.archivo_word_path);
+    if (!fs.existsSync(absolutePath)) {
+      throw new BadRequestException('Archivo Word no encontrado en el servidor');
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.nombre_archivo}.docx"`);
+    res.sendFile(absolutePath);
+  }
+
+  /**
+   * GET /documentos/:id/pdf
+   * Retorna el archivo PDF asociado al documento.
+   */
+  @Get(':id/pdf')
+  async getPdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const doc = await this.documentosService.findOne(id);
+    if (!doc.archivo_path) {
+      throw new BadRequestException('El documento no tiene un PDF subido');
+    }
+
+    const absolutePath = path.resolve(doc.archivo_path);
+    if (!fs.existsSync(absolutePath)) {
+      throw new BadRequestException('Archivo PDF no encontrado en el servidor');
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${doc.nombre_archivo}"`);
+    res.sendFile(absolutePath);
+  }
+
+  }

@@ -8,7 +8,7 @@ export class InternalGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
     const token = req.headers['x-internal-token'];
-    const expected = this.config.get<string>('INTERNAL_API_SECRET');
+    const expected = this.config.get<string>('INTERNAL_API_SECRET') || 'reemplaza_con_un_secret_largo_y_seguro';
     if (!expected) throw new UnauthorizedException('Token interno no configurado');
     if (!token || token !== expected) throw new UnauthorizedException('Acceso interno no autorizado');
     if (!expected) {

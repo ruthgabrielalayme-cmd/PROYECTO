@@ -14,7 +14,7 @@ import { CreateDerivacionDto } from './derivacion.dto';
 import { TipoBandeja } from '../bandejas/bandeja.entity';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { EstadoHojaRuta } from 'src/hojas-ruta/hoja-ruta.entity';
+import { EstadoHojaRuta } from '../hojas-ruta/hoja-ruta.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -182,6 +182,23 @@ export class DerivacionesService {
     return saved;
   }
 
+  // ─── Recibir derivación ──────────────────────────────────────────────────
+  async recibir(id: string): Promise<Derivacion> {
+    const derivacion = await this.findOne(id);
+
+    if (derivacion.estado !== EstadoDerivacion.ENVIADA) {
+      throw new BadRequestException(
+        'Solo se pueden recibir derivaciones en estado ENVIADA',
+      );
+    }
+
+    derivacion.estado = EstadoDerivacion.RECIBIDA;
+    const saved = await this.repo.save(derivacion);
+
+    this.logger.log(`Derivación ${id} recibida`);
+    return saved;
+  }
+
 
   private async findOne(id: string): Promise<Derivacion> {
     const d = await this.repo.findOne({
@@ -190,6 +207,18 @@ export class DerivacionesService {
     });
     if (!d) throw new NotFoundException(`Derivacion ${id} no encontrada`);
     return d;
+  }
+
+  async findPendientesByDestinatario(destinatarioId: string): Promise<Derivacion[]> {
+    return this.repo.find({
+      where: {
+        destinatario_id: destinatarioId,
+        es_externa: true,
+        estado: EstadoDerivacion.PENDIENTE_APROBACION,
+      },
+      relations: ['hoja_ruta'],
+      order: { created_at: 'DESC' },
+    });
   }
   
     // ─── Cambiar estado del documento en svc_documentos (con token interno) ──

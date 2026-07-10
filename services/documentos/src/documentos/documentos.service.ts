@@ -15,17 +15,42 @@ import * as QRCode from 'qrcode';
 import { Documento, EstadoDocumento } from './documento.entity';
 import { TiposDocumentoService } from '../tipos-documento/tipos-documento.service';
 import { CreateDocumentoDto } from './documento.dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DocumentosService {
   private readonly logger = new Logger(DocumentosService.name);
+  private readonly usuariosUrl: string;
+  private readonly internalToken: string;
 
   constructor(
     @InjectRepository(Documento)
     private readonly repo: Repository<Documento>,
     private readonly tiposDocumentoService: TiposDocumentoService,
     private readonly config: ConfigService,
-  ) {}
+    private readonly httpService: HttpService,
+  ) {
+    this.usuariosUrl = this.config.get<string>('USUARIOS_URL') || this.config.get<string>('USUARIOS_SERVICE_URL') || 'http://localhost:3001';
+    this.internalToken = this.config.get<string>('INTERNAL_API_SECRET') || 'reemplaza_con_un_secret_largo_y_seguro';
+  }
+
+  private async enrichDocumento(doc: Documento): Promise<Documento> {
+    if (!doc.creado_por) return doc;
+    try {
+      const res = await firstValueFrom(
+        this.httpService.get<any>(`${this.usuariosUrl}/usuarios/internos/${doc.creado_por}`, {
+          headers: { 'X-Internal-Token': this.internalToken },
+        })
+      );
+      if (res.data?.nombre_completo) {
+        doc.creado_por_nombre = res.data.nombre_completo;
+      }
+    } catch (err) {
+      this.logger.warn(`Could not fetch user name for ${doc.creado_por}: ${(err as any).message} ${(err as any).response?.status}`);
+    }
+    return doc;
+  }
 
   async findAllByUser(user: { id: string; rol: string; area: string | null }): Promise<Documento[]> {
   const qb = this.repo.createQueryBuilder('doc')
@@ -50,7 +75,8 @@ export class DocumentosService {
   } else {
     // FUNCIONARIO: documentos de su área o donde es creador
     qb.andWhere('(doc.area = :area OR doc.creado_por = :userId)', { area: user.area, userId: user.id });
-    return qb.getMany();
+    const docs = await qb.getMany();
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
   }
 }
 
@@ -79,7 +105,29 @@ export class DocumentosService {
   // ─── Obtener documentos ────────────────────────────────────────────────
 
   async findAll(): Promise<Documento[]> {
-    return this.repo.find({ relations: ['tipo_documento'] });
+    const docs = await this.repo.find({ relations: ['tipo_documento'] });
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
+  }
+
+  async findRevisionesPendientes(area: string): Promise<Documento[]> {
+    const qb = this.repo.createQueryBuilder('doc')
+      .leftJoinAndSelect('doc.tipo_documento', 'tipo')
+      .where('doc.estado = :estado', { estado: EstadoDocumento.BORRADOR })
+      .andWhere('doc.archivo_word_path IS NOT NULL')
+      .andWhere('doc.area = :area', { area });
+
+    const docs = await qb.getMany();
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
+  }
+
+
+  async findByQr(qrId: string): Promise<Documento> {
+    const doc = await this.repo.findOne({
+      where: { qr_id: qrId },
+      relations: ['tipo_documento'],
+    });
+    if (!doc) throw new NotFoundException(`Documento con QR ${qrId} no encontrado`);
+    return this.enrichDocumento(doc);
   }
 
   async findOne(id: string): Promise<Documento> {
@@ -88,7 +136,7 @@ export class DocumentosService {
       relations: ['tipo_documento'],
     });
     if (!doc) throw new NotFoundException(`Documento ${id} no encontrado`);
-    return doc;
+    return this.enrichDocumento(doc);
   }
 
   // ─── Descargar plantilla ─────────────────────────────────────────────────
@@ -111,6 +159,70 @@ export class DocumentosService {
     return { filePath: tipo.plantilla_path, fileName };
   }
 
+  // ─── Subir Word Borrador ─────────────────────────────────────────────────
+
+  async subirWord(documentoId: string, fileBuffer: Buffer, originalName: string): Promise<Documento> {
+    const doc = await this.findOne(documentoId);
+
+    if (doc.estado !== EstadoDocumento.BORRADOR) {
+      throw new BadRequestException('Solo se puede subir un borrador si el documento está en estado BORRADOR');
+    }
+
+    const storagePath = this.config.get<string>('STORAGE_PATH_WORDS') ?? './storage/words';
+    await fs.mkdir(storagePath, { recursive: true });
+
+    const ext = path.extname(originalName);
+    const fileName = `${documentoId}-${Date.now()}${ext}`;
+    const filePath = path.join(storagePath, fileName);
+
+    // Si ya existe un archivo, lo borramos
+    if (doc.archivo_word_path) {
+      try {
+        await fs.unlink(doc.archivo_word_path);
+      } catch (err) {
+        this.logger.warn(`No se pudo eliminar el archivo Word anterior: ${doc.archivo_word_path}`);
+      }
+    }
+
+    await fs.writeFile(filePath, fileBuffer);
+
+    doc.archivo_word_path = filePath;
+    doc.observaciones_rechazo = null; // Limpiar observaciones al resubir
+
+    const saved = await this.repo.save(doc);
+    this.logger.log(`Word borrador subido para documento ${documentoId}`);
+    return saved;
+  }
+
+  // ─── Evaluar Borrador (Aprobar / Rechazar) ───────────────────────────────
+
+  async evaluarBorrador(documentoId: string, accion: 'APROBAR' | 'RECHAZAR', observaciones?: string): Promise<Documento> {
+    const doc = await this.findOne(documentoId);
+
+    if (doc.estado !== EstadoDocumento.BORRADOR) {
+      throw new BadRequestException('Solo se puede evaluar un documento en estado BORRADOR');
+    }
+    if (!doc.archivo_word_path) {
+      throw new BadRequestException('El documento no tiene un archivo Word subido para evaluar');
+    }
+
+    if (accion === 'APROBAR') {
+      doc.estado = EstadoDocumento.BORRADOR_APROBADO;
+      doc.observaciones_rechazo = null;
+      this.logger.log(`Documento ${documentoId} aprobado por el encargado`);
+    } else if (accion === 'RECHAZAR') {
+      if (!observaciones) {
+        throw new BadRequestException('Debe incluir observaciones al rechazar');
+      }
+      doc.observaciones_rechazo = observaciones;
+      this.logger.log(`Documento ${documentoId} rechazado por el encargado`);
+    } else {
+      throw new BadRequestException('Acción no válida');
+    }
+
+    return this.repo.save(doc);
+  }
+
   // ─── Subir PDF definitivo con site + QR ──────────────────────────────────
 
   async subirPdf(
@@ -120,9 +232,9 @@ export class DocumentosService {
   ): Promise<Documento> {
     const doc = await this.findOne(documentoId);
 
-    if (doc.estado === EstadoDocumento.EN_FLUJO) {
+    if (doc.estado !== EstadoDocumento.BORRADOR_APROBADO) {
       throw new BadRequestException(
-        'El documento ya está en flujo y no puede modificarse',
+        'El documento debe estar aprobado (BORRADOR_APROBADO) para subir el PDF definitivo',
       );
     }
 
@@ -199,7 +311,8 @@ export class DocumentosService {
 
 async cambiarEstado(id: string, nuevoEstado: EstadoDocumento): Promise<Documento> {
   const doc = await this.findOne(id);
-  if (doc.estado === EstadoDocumento.EN_FLUJO && nuevoEstado !== EstadoDocumento.EN_FLUJO) {
+
+  if (nuevoEstado !== EstadoDocumento.FINALIZADO && doc.estado === EstadoDocumento.EN_FLUJO && nuevoEstado !== EstadoDocumento.EN_FLUJO) {
     throw new BadRequestException('No se puede cambiar el estado de un documento en flujo');
   }
   if (doc.estado !== EstadoDocumento.PDF_SUBIDO && nuevoEstado === EstadoDocumento.EN_FLUJO) {

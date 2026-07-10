@@ -6,6 +6,8 @@ import {
   Body,
   UseGuards,
   ParseUUIDPipe,
+  Req,
+  Query,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { UpdateUsuarioDto } from './usuario.dto';
@@ -21,8 +23,9 @@ export class UsuariosController {
 
   @Get()
   // Permite a ADMIN, ENCARGADO y FUNCIONARIO ver la lista de usuarios para derivaciones
-  findAll() {
-    return this.usuariosService.findAll();
+  findAll(@Req() req: any, @Query('search') search?: string) {
+    const user = req.user;
+    return this.usuariosService.findAll(user, search);
   }
 
   @Get(':id')

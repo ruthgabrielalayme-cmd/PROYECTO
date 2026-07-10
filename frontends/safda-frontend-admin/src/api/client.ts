@@ -17,8 +17,11 @@ const makeClient = (baseURL: string) => {
     (r) => r,
     (err) => {
       if (err.response?.status === 401) {
-        removeToken()
-        window.location.href = '/login'
+        // Prevent redirect loop during login attempts
+        if (!window.location.pathname.includes('/login')) {
+            removeToken()
+            window.location.href = '/login'
+        }
       }
       return Promise.reject(err)
     },
