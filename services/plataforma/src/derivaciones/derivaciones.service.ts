@@ -208,6 +208,18 @@ export class DerivacionesService {
     if (!d) throw new NotFoundException(`Derivacion ${id} no encontrada`);
     return d;
   }
+
+  async findPendientesByDestinatario(destinatarioId: string): Promise<Derivacion[]> {
+    return this.repo.find({
+      where: {
+        destinatario_id: destinatarioId,
+        es_externa: true,
+        estado: EstadoDerivacion.PENDIENTE_APROBACION,
+      },
+      relations: ['hoja_ruta'],
+      order: { created_at: 'DESC' },
+    });
+  }
   
     // ─── Cambiar estado del documento en svc_documentos (con token interno) ──
   private async cambiarEstadoDocumento(documentoId: string, nuevoEstado: string): Promise<void> {

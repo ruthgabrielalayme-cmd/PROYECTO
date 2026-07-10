@@ -109,6 +109,17 @@ export class DocumentosService {
     return Promise.all(docs.map(d => this.enrichDocumento(d)));
   }
 
+  async findRevisionesPendientes(area: string): Promise<Documento[]> {
+    const qb = this.repo.createQueryBuilder('doc')
+      .leftJoinAndSelect('doc.tipo_documento', 'tipo')
+      .where('doc.estado = :estado', { estado: EstadoDocumento.BORRADOR })
+      .andWhere('doc.archivo_word_path IS NOT NULL')
+      .andWhere('doc.area = :area', { area });
+
+    const docs = await qb.getMany();
+    return Promise.all(docs.map(d => this.enrichDocumento(d)));
+  }
+
 
   async findByQr(qrId: string): Promise<Documento> {
     const doc = await this.repo.findOne({
