@@ -53,6 +53,9 @@ export const documentosService = {
   evaluar: (id: string, accion: 'APROBAR' | 'RECHAZAR', observaciones?: string) =>
     apiDocumentos.patch<Documento>(`/documentos/${id}/evaluar`, { accion, observaciones }).then((r) => r.data),
 
+  descargarWord: (id: string) =>
+    apiDocumentos.get(`/documentos/${id}/word`, { responseType: 'blob' }).then((r) => r.data),
+
   verPdf: (id: string) =>
     apiDocumentos.get(`/documentos/${id}/pdf`, { responseType: 'blob' }).then((r) => r.data),
 }
